@@ -82,6 +82,7 @@ import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.provider.DeviceConfig;
 import android.provider.MediaStore;
+import android.provider.Settings;
 import android.text.TextUtils;
 import android.util.DisplayMetrics;
 import android.util.Slog;
@@ -989,7 +990,9 @@ class GlobalScreenshot {
                         break;
                     case AudioManager.RINGER_MODE_NORMAL:
                         // Play the shutter sound to notify that we've taken a screenshot
-                        mCameraSound.play(MediaActionSound.SHUTTER_CLICK);
+                        if (Settings.System.getIntForUser(mContext.getContentResolver(),
+                        Settings.System.SCREENSHOT_SOUND, 1, UserHandle.USER_CURRENT) == 1) {
+                          mCameraSound.play(MediaActionSound.SHUTTER_CLICK);
                         break;
                 }
 
