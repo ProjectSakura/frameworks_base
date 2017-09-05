@@ -5171,8 +5171,28 @@ public final class Settings {
                 "lockscreen_quick_unlock_control";
 
         /**
-         * Whether to enable DOZE only when charging
+         * Whether the phone vibrates on call connect
          * @hide
+         */
+        public static final String VIBRATE_ON_CONNECT = "vibrate_on_connect";
+
+        /**
+         * Whether the phone vibrates on call waiting
+         * @hide
+         */
+        public static final String VIBRATE_ON_CALLWAITING = "vibrate_on_callwaiting";
+
+        /**
+         * Whether the phone vibrates on disconnect
+         * @hide
+         */
+        public static final String VIBRATE_ON_DISCONNECT = "vibrate_on_disconnect";
+
+        /**
+         * IMPORTANT: If you add a new public settings you also have to add it to
+         * PUBLIC_SETTINGS below. If the new setting is hidden you have to add
+         * it to PRIVATE_SETTINGS below. Also add a validator that can validate
+         * the setting value. See an example above.
          */
         public static final String DOZE_ON_CHARGE = "doze_on_charge";
 
@@ -5397,6 +5417,9 @@ public final class Settings {
             PRIVATE_SETTINGS.add(NETWORK_TRAFFIC_LAYOUT);
             PRIVATE_SETTINGS.add(QS_PANEL_BG_USE_NEW_TINT);
             PRIVATE_SETTINGS.add(SCREEN_OFF_ANIMATION);
+            PRIVATE_SETTINGS.add(VIBRATE_ON_CONNECT);
+            PRIVATE_SETTINGS.add(VIBRATE_ON_CALLWAITING);
+            PRIVATE_SETTINGS.add(VIBRATE_ON_DISCONNECT);
         }
 
         /**
