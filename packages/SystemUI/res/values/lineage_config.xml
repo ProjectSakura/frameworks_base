@@ -43,4 +43,7 @@
     <!-- Asus stitch editor component name -->
     <string name="config_stitchEditor">com.asus.stitchimage/com.asus.stitchimage.editor.ScreenshotEditorActivity</string>
 
+    <!-- CPUInfoService temperature sysfs path -->
+    <string name="config_cpuinfoSysTemp" translatable="false"></string>
+
 </resources>
