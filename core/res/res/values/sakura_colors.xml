@@ -19,4 +19,7 @@
     <!-- Mizu -->
     <color name="theme_background_mizu">#ae000000</color>
 
+    <!-- toast icons -->
+    <color name="toast_bg">@color/white</color>
+    <color name="toast_text">@color/black</color>
 </resources>
