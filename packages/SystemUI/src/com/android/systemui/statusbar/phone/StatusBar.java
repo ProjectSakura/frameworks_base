@@ -4227,6 +4227,12 @@ public class StatusBar extends SystemUI implements DemoMode,
             resolver.registerContentObserver(Settings.Secure.getUriFor(
             Settings.Secure.FP_SWIPE_TO_DISMISS_NOTIFICATIONS),
             false, this, UserHandle.USER_ALL);
+            resolver.registerContentObserver(Settings.System.getUriFor(
+            Settings.System.HEADS_UP_STOPLIST_VALUES), 
+            false, this);
+            resolver.registerContentObserver(Settings.System.getUriFor(
+            Settings.System.HEADS_UP_BLACKLIST_VALUES), 
+            false, this);
         }
 
      @Override
@@ -4240,7 +4246,8 @@ public class StatusBar extends SystemUI implements DemoMode,
                     setFpToDismissNotifications();
         }
        update();
-    }
+     }
+
      public void update() {
                   setFpToDismissNotifications();
         }
@@ -4250,6 +4257,16 @@ public class StatusBar extends SystemUI implements DemoMode,
         mFpDismissNotifications = Settings.Secure.getIntForUser(mContext.getContentResolver(),
                 Settings.Secure.FP_SWIPE_TO_DISMISS_NOTIFICATIONS, 0,
                 UserHandle.USER_CURRENT) == 1;
+    }
+
+    private void setHeadsUpStoplist() {
+        if (mPresenter != null)
+            mPresenter.setHeadsUpStoplist();
+    }
+
+    private void setHeadsUpBlacklist() {
+        if (mPresenter != null)
+            mPresenter.setHeadsUpBlacklist();
     }
 
     public int getWakefulnessState() {
