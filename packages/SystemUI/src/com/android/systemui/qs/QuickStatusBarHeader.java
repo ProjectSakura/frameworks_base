@@ -17,7 +17,7 @@ package com.android.systemui.qs;
 import static android.app.StatusBarManager.DISABLE2_QUICK_SETTINGS;
 
 import static com.android.systemui.util.InjectionInflationController.VIEW_CONTEXT;
-
+import android.content.ContentResolver;
 import android.annotation.ColorInt;
 import android.app.ActivityManager;
 import android.app.AlarmManager;
@@ -33,6 +33,8 @@ import android.graphics.Color;
 import android.graphics.Rect;
 import android.media.AudioManager;
 import android.os.Handler;
+import android.os.UserHandle;
+import android.database.ContentObserver;
 import android.os.Looper;
 import android.provider.AlarmClock;
 import android.provider.DeviceConfig;
@@ -447,41 +449,7 @@ public class QuickStatusBarHeader extends RelativeLayout implements
         updateHeaderTextContainerAlphaAnimator();
         updatePrivacyChipAlphaAnimator();
     }
-
-    private void updateQSBatteryMode() {
-        int showEstimate = Settings.System.getInt(mContext.getContentResolver(),
-        Settings.System.QS_BATTERY_MODE, 0);
-        if (showEstimate == 0) {
-            mBatteryMeterView.setShowPercent(0);
-            mBatteryMeterView.setPercentShowMode(BatteryMeterView.MODE_OFF);
-        } else if (showEstimate == 1) {
-            mBatteryMeterView.setShowPercent(0);
-            mBatteryMeterView.setPercentShowMode(BatteryMeterView.MODE_ON);
-        } else if (showEstimate == 2) {
-            mBatteryMeterView.setShowPercent(1);
-            mBatteryMeterView.setPercentShowMode(BatteryMeterView.MODE_OFF);
-        } else if (showEstimate == 3) {
-            mBatteryMeterView.setShowPercent(0);
-            mBatteryMeterView.setPercentShowMode(BatteryMeterView.MODE_ESTIMATE);
-        }
-        mBatteryMeterView.updatePercentView();
-        mBatteryMeterView.updateVisibility();
-    }
-
-    private void updateSBBatteryStyle() {
-        mBatteryMeterView.setBatteryStyle(Settings.System.getInt(mContext.getContentResolver(),
-        Settings.System.STATUS_BAR_BATTERY_STYLE, 0));
-        mBatteryMeterView.updateBatteryStyle();
-        mBatteryMeterView.updatePercentView();
-        mBatteryMeterView.updateVisibility();
-    }
-
-    private void updateQSClock() {
-        int show = Settings.System.getInt(mContext.getContentResolver(),
-        Settings.System.SHOW_QS_CLOCK, 1);
-        mClockView.setClockVisibleByUser(show == 1);
-    }
-
+    
     private void updateStatusIconAlphaAnimator() {
         mStatusIconsAlphaAnimator = new TouchAnimator.Builder()
                 .addFloat(mQuickQsStatusIcons, "alpha", 1, 0, 0)
@@ -739,9 +707,6 @@ public class QuickStatusBarHeader extends RelativeLayout implements
         mHeaderImageEnabled = Settings.System.getIntForUser(getContext().getContentResolver(),
                 Settings.System.OMNI_STATUS_BAR_CUSTOM_HEADER, 0,
                 UserHandle.USER_CURRENT) == 1;
-        updateQSBatteryMode();
-        updateSBBatteryStyle();
-        updateQSClock();
         updateResources();
         updateStatusbarProperties();
     }
