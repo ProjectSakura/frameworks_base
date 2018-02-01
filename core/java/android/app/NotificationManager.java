@@ -2874,6 +2874,26 @@ public class NotificationManager {
         }
     }
 
+    /** @hide */
+    public void forceShowLedLight(int color) {
+        final INotificationManager service = getService();
+        try {
+            service.forceShowLedLight(color);
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
+    /** @hide */
+    public void forcePulseLedLight(int color, int onTime, int offTime) {
+        final INotificationManager service = getService();
+        try {
+            service.forcePulseLedLight(color, onTime, offTime);
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
     /**
      * Callback to receive updates when a call notification has been posted or removed
      * @hide
@@ -2994,5 +3014,4 @@ public class NotificationManager {
             throw e.rethrowFromSystemServer();
         }
     }
-
 }
