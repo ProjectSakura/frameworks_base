@@ -111,4 +111,6 @@
     <!-- FOD -->
     <bool name="config_targetUsesInKernelDimming">true</bool>
 
+    <!-- Whether the device supports Smart Pixels -->
+    <bool name="config_supportSmartPixels">false</bool>
 </resources>
