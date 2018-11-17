@@ -70,6 +70,7 @@ import android.content.ContentResolver;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.IPackageManager;
+import android.content.om.IOverlayManager;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.res.Configuration;
@@ -142,6 +143,7 @@ import com.android.internal.widget.LockPatternUtils;
 import com.android.keyguard.KeyguardUpdateMonitor;
 import com.android.keyguard.KeyguardUpdateMonitorCallback;
 import com.android.keyguard.ViewMediatorCallback;
+import com.android.internal.statusbar.ThemeAccentUtils;
 import com.android.systemui.ActivityIntentHelper;
 import com.android.systemui.ActivityStarterDelegate;
 import com.android.systemui.AutoReinflateContainer;
@@ -226,6 +228,7 @@ import com.android.systemui.statusbar.notification.row.ExpandableNotificationRow
 import com.android.systemui.statusbar.notification.row.NotificationGutsManager;
 import com.android.systemui.statusbar.notification.stack.NotificationListContainer;
 import com.android.systemui.statusbar.notification.stack.NotificationStackScrollLayout;
+import com.android.systemui.statusbar.phone.BarTransitions.BarBackgroundDrawable;
 import com.android.systemui.statusbar.phone.UnlockMethodCache.OnUnlockMethodChangedListener;
 import com.android.systemui.statusbar.policy.BatteryController;
 import com.android.systemui.statusbar.policy.BatteryController.BatteryStateChangeCallback;
@@ -309,13 +312,18 @@ public class StatusBar extends SystemUI implements DemoMode,
 
     private static final String QS_COLUMNS_LANDSCAPE =
             "system:" + Settings.System.QS_COLUMNS_LANDSCAPE;
-
     private static final String SYSUI_ROUNDED_FWVALS =
             Settings.Secure.SYSUI_ROUNDED_FWVALS;
     private static final String GAMING_MODE_ACTIVE =
             "system:" + Settings.System.GAMING_MODE_ACTIVE;
     private static final String GAMING_MODE_HEADSUP_TOGGLE =
             "system:" + Settings.System.GAMING_MODE_HEADSUP_TOGGLE;
+    private static final String DISPLAY_CUTOUT_MODE =
+            "system:" + Settings.System.DISPLAY_CUTOUT_MODE;
+    private static final String STOCK_STATUSBAR_IN_HIDE =
+            "system:" + Settings.System.STOCK_STATUSBAR_IN_HIDE;
+    private static final String SYSUI_ROUNDED_SIZE =
+            "sysui_rounded_size";
 
     private static final String BANNER_ACTION_CANCEL =
             "com.android.systemui.statusbar.banner_action_cancel";
@@ -633,6 +641,11 @@ public class StatusBar extends SystemUI implements DemoMode,
     private boolean mWereIconsJustHidden;
     private boolean mBouncerWasShowingWhenHidden;
 
+    private IOverlayManager mOverlayManager;
+    private int mImmerseMode;
+    private boolean mStockStatusBar = true;
+    private int mRoundedSize = -1;
+
     // Notifies StatusBarKeyguardViewManager every time the keyguard transition is over,
     // this animation is tied to the scrim for historic reasons.
     // TODO: notify when keyguard has faded away instead of the scrim.
@@ -786,6 +799,9 @@ public class StatusBar extends SystemUI implements DemoMode,
         tunerService.addTunable(this, SYSUI_ROUNDED_FWVALS);
         tunerService.addTunable(this, GAMING_MODE_ACTIVE);
         tunerService.addTunable(this, GAMING_MODE_HEADSUP_TOGGLE);
+        tunerService.addTunable(this, DISPLAY_CUTOUT_MODE);
+        tunerService.addTunable(this, STOCK_STATUSBAR_IN_HIDE);
+        tunerService.addTunable(this, SYSUI_ROUNDED_SIZE);
 
         mDisplayManager = mContext.getSystemService(DisplayManager.class);
 
@@ -1006,6 +1022,7 @@ public class StatusBar extends SystemUI implements DemoMode,
                     checkBarModes();
                     mBurnInProtectionController =
                         new BurnInProtectionController(mContext, this, mStatusBarView);
+                    handleCutout(null);
                 }).getFragmentManager()
                 .beginTransaction()
                 .replace(R.id.status_bar_container, new CollapsedStatusBarFragment(),
@@ -5163,6 +5180,30 @@ public class StatusBar extends SystemUI implements DemoMode,
                         TunerService.parseIntegerSwitch(newValue, true);
                 mNotificationInterruptionStateProvider.setGamingPeekMode(mGamingModeActivated && mHeadsUpDisabled);
                 break;
+            case DISPLAY_CUTOUT_MODE:
+                int immerseMode =
+                        TunerService.parseInteger(newValue, 0);
+                if (mImmerseMode != immerseMode) {
+                    mImmerseMode = immerseMode;
+                    handleCutout(null);
+                }
+                break;
+            case STOCK_STATUSBAR_IN_HIDE:
+                boolean stockStatusBar =
+                        TunerService.parseIntegerSwitch(newValue, true);
+                if (mStockStatusBar != stockStatusBar) {
+                    mStockStatusBar = stockStatusBar;
+                    handleCutout(null);
+                }
+                break;
+            case SYSUI_ROUNDED_SIZE:
+                int roundedSize =
+                        TunerService.parseInteger(newValue, -1);
+                if (mRoundedSize != roundedSize) {
+                    mRoundedSize = roundedSize;
+                    handleCutout(null);
+                }
+                break;
             default:
                 break;
        }
@@ -5182,5 +5223,49 @@ public class StatusBar extends SystemUI implements DemoMode,
         return mStatusBarMode;
     }
 
+    private void setBlackStatusBar(boolean enable) {
+        if (mStatusBarWindow == null || mStatusBarWindow.getBarTransitions() == null) return;
+        if (enable) {
+            mStatusBarWindow.getBarTransitions().getBackground().setColorOverride(new Integer(0xFF000000));
+        } else {
+            mStatusBarWindow.getBarTransitions().getBackground().setColorOverride(null);
+        }
+    }
+
+    private void setNotificationPanelPadding(boolean enable) {
+        if (mNotificationPanel == null) return;
+        if (enable) {
+            int size = (int) (mRoundedSize * getDisplayDensity());
+            // Choose a sane safe size in immerse, often
+            // defaults are too large
+            if (size < 0) {
+                size = (int) (20 * getDisplayDensity());
+            }
+            mNotificationPanel.setPadding(size, 0, size, 0);
+        } else {
+            mNotificationPanel.setPadding(0, 0, 0, 0);
+        }
+
+    }
+
+    private void handleCutout(Configuration newConfig) {
+        boolean immerseMode;
+        if (newConfig == null) newConfig = mContext.getResources().getConfiguration();
+        if (newConfig == null || newConfig.orientation == Configuration.ORIENTATION_PORTRAIT) {
+            immerseMode = mImmerseMode == 1;
+        } else {
+            immerseMode = false;
+        }
+        setBlackStatusBar(immerseMode);
+        setNotificationPanelPadding(immerseMode);
+
+        final boolean hideCutoutMode = mImmerseMode == 2;
+        mUiOffloadThread.submit(() -> {
+            ThemeAccentUtils.setCutoutOverlay(mOverlayManager, mLockscreenUserManager.getCurrentUserId(),
+                hideCutoutMode);
+            ThemeAccentUtils.setStatusBarStockOverlay(mOverlayManager, mLockscreenUserManager.getCurrentUserId(),
+                hideCutoutMode && mStockStatusBar);
+        });
+    }
 }
 
