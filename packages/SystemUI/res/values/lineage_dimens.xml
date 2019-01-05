@@ -30,4 +30,7 @@
 
     <!-- Volume panel -->
     <dimen name="volume_dialog_panel_transparent_padding_left">20dp</dimen>
+
+    <!-- the padding on the start and the end of the statusbar -->
+    <dimen name="status_bar_extra_padding">0dp</dimen>
 </resources>
