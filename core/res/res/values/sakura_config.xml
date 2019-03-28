@@ -21,4 +21,7 @@
 
     <!-- Whether device has VOOC charging support -->
     <bool name="config_hasVoocCharger">false</bool>
+
+    <!-- Smart charging battery percentage -->
+    <integer name="config_smartChargingBatteryLevel">80</integer>
 </resources>
