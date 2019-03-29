@@ -147,4 +147,7 @@
 
     <!-- Name of the battery status bar icon. -->
     <string name="status_bar_battery">Battery</string>
+
+    <!-- Restart SystemUI via Advanced Power Menu -->
+    <string name="global_action_restart_systemui">SystemUI</string>
 </resources>
