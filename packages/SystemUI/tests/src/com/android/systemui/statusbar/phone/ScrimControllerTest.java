@@ -230,8 +230,13 @@ public class ScrimControllerTest extends SysuiTestCase {
         // Front scrim should be transparent, but tinted
         // Back scrim should be semi-transparent so the user can see the wallpaper
         // Pulse callback should have been invoked
-        assertScrimVisibility(VISIBILITY_FULLY_TRANSPARENT, VISIBILITY_FULLY_OPAQUE);
-        assertScrimTint(mScrimBehind, true /* tinted */);
+        assertScrimAlpha(TRANSPARENT /* front */,
+                OPAQUE /* back */,
+                TRANSPARENT /* bubble */);
+
+        assertScrimTint(true /* front */,
+                true /* behind */,
+                false /* bubble */);
 
         // ... and when ambient goes dark, front scrim should be semi-transparent
         mScrimController.setAodFrontScrimAlpha(0.5f);
@@ -242,11 +247,9 @@ public class ScrimControllerTest extends SysuiTestCase {
 
         mScrimController.setWakeLockScreenSensorActive(true);
         mScrimController.finishAnimationsImmediately();
-        assertScrimVisibility(VISIBILITY_SEMI_TRANSPARENT /* front */,
-                VISIBILITY_SEMI_TRANSPARENT /* back */);
-
-        // Reset value since enums are static.
-        mScrimController.setAodFrontScrimAlpha(0f);
+        assertScrimAlpha(SEMI_TRANSPARENT /* front */,
+                SEMI_TRANSPARENT /* back */,
+                TRANSPARENT /* bubble */);
     }
 
     @Test
