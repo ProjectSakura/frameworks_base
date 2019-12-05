@@ -128,6 +128,7 @@ public class DataSwitchTile extends QSTileImpl<BooleanState> {
                     mContext.getString(R.string.qs_data_switch_toast_1),
                     Toast.LENGTH_LONG).show();
         } else {
+            mHost.collapsePanels();
             AsyncTask.execute(new Runnable() {
                 public final void run() {
                     toggleMobileDataEnabled();
@@ -139,7 +140,7 @@ public class DataSwitchTile extends QSTileImpl<BooleanState> {
 
     @Override
     public Intent getLongClickIntent() {
-        return new Intent(Settings.ACTION_NETWORK_OPERATOR_SETTINGS);
+        return new Intent(Settings.Panel.ACTION_MOBILE_DATA);
     }
 
     @Override
