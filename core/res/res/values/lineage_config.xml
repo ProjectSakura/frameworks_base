@@ -53,6 +53,6 @@
     <string name="config_SmartChargingResumeValue" translatable="false">1</string>
 
     <!-- Whether device supports internal audio recording -->
-    <java-symbol type="bool" name="config_hasInternalAudioRecordingSupport" />
+    <bool name="config_hasInternalAudioRecordingSupport">true</bool>
 
 </resources>
