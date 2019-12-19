@@ -4843,6 +4843,13 @@ public final class Settings {
                 ANY_STRING_VALIDATOR;
 
         /**
+         * Duration of Ambient edge light in seconds
+         * @hide
+         */
+        public static final String PULSE_AMBIENT_LIGHT_DURATION = "pulse_ambient_light_duration";
+
+
+        /**
          * Settings to backup. This is here so that it's in the same place as the settings
          * keys and easy to update.
          *
