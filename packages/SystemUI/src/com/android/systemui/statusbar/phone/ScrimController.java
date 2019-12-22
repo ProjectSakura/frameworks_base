@@ -455,11 +455,11 @@ public class ScrimController implements ViewTreeObserver.OnPreDrawListener, OnCo
             if (mDarkenWhileDragging) {
                 mCurrentBehindAlpha = MathUtils.lerp(GRADIENT_SCRIM_ALPHA_BUSY, alphaBehind,
                         interpolatedFract);
-                mInFrontAlpha = 0;
+                mCurrentInFrontAlpha = 0;
             } else {
                 mCurrentBehindAlpha = MathUtils.lerp(0 /* start */, alphaBehind,
                         interpolatedFract);
-                mInFrontAlpha = 0;
+                mCurrentInFrontAlpha = 0;
             }
             mCurrentBehindTint = ColorUtils.blendARGB(ScrimState.BOUNCER.getBehindTint(),
                     mState.getBehindTint(), interpolatedFract);
@@ -486,8 +486,8 @@ public class ScrimController implements ViewTreeObserver.OnPreDrawListener, OnCo
      */
     public void setAodFrontScrimAlpha(float alpha) {
         if (mState == ScrimState.AOD && mDozeParameters.getAlwaysOn()
-            && mInFrontAlpha != alpha) {
-            mInFrontAlpha = alpha;
+                && mCurrentInFrontAlpha != alpha) {
+            mCurrentInFrontAlpha = alpha;
             updateScrims();
         }
 
