@@ -112,8 +112,9 @@ public class QSTileBaseView extends com.android.systemui.plugins.qs.QSTileView {
         setBackground(mTileBackground);
 
         mColorActive = Utils.getColorAttrDefaultColor(context, android.R.attr.colorAccent);
-        mColorDisabled = Utils.getDisabled(context,
-                Utils.getColorAttrDefaultColor(context, android.R.attr.textColorTertiary));
+        mColorActiveAlpha = adjustAlpha(mColorActive, 0.2f);
+        mColorActive = mColorActiveAlpha;
+        mColorDisabled = context.getResources().getColor(R.color.qs_tile_background_color_disabled);
         mColorInactive = Utils.getColorAttrDefaultColor(context, android.R.attr.textColorSecondary);
 
         setPadding(0, 0, 0, 0);
