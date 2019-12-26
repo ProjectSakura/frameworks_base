@@ -50,7 +50,8 @@ import com.android.systemui.statusbar.StatusBarState;
 import com.android.systemui.statusbar.SysuiStatusBarStateController;
 import com.android.systemui.statusbar.VibratorHelper;
 import com.android.systemui.statusbar.policy.KeyguardMonitor;
-
+import com.android.systemui.statusbar.notification.stack.NotificationStackScrollLayout;
+import com.android.systemui.statusbar.phone.StatusBar;
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -1253,6 +1254,9 @@ public abstract class PanelView extends FrameLayout {
 
     public void setLaunchingNotification(boolean launchingNotification) {
         mLaunchingNotification = launchingNotification;
+        if (launchingNotification) {
+            StatusBar.setDismissAllVisible(false);
+        }
     }
 
     public void collapseWithDuration(int animationDuration) {
