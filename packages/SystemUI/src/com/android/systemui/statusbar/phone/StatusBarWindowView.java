@@ -19,6 +19,10 @@ package com.android.systemui.statusbar.phone;
 import android.annotation.ColorInt;
 import android.annotation.DrawableRes;
 import android.annotation.LayoutRes;
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.TimeAnimator;
+import android.animation.ValueAnimator;
 import android.app.StatusBarManager;
 import android.content.Context;
 import android.content.res.Configuration;
@@ -29,6 +33,7 @@ import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
 import android.hardware.display.AmbientDisplayConfiguration;
 import android.media.AudioManager;
 import android.media.session.MediaSessionLegacyHelper;
@@ -39,6 +44,7 @@ import android.os.SystemClock;
 import android.os.UserHandle;
 import android.provider.Settings;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.ActionMode;
 import android.view.DisplayCutout;
 import android.view.GestureDetector;
@@ -55,7 +61,11 @@ import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.view.Window;
 import android.view.WindowInsetsController;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
+import android.view.animation.Interpolator;
 import android.widget.FrameLayout;
+import android.widget.ImageButton;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.view.FloatingActionMode;
@@ -81,10 +91,9 @@ import java.io.PrintWriter;
 public class StatusBarWindowView extends FrameLayout {
     public static final String TAG = "StatusBarWindowView";
     public static final boolean DEBUG = StatusBar.DEBUG;
-
     private static final String DOUBLE_TAP_SLEEP_GESTURE =
             "lineagesystem:" + LineageSettings.System.DOUBLE_TAP_SLEEP_GESTURE;
-
+    private static Context mStaticContext;
     private final GestureDetector mGestureDetector;
     private final StatusBarStateController mStatusBarStateController;
     private boolean mDoubleTapEnabled;
@@ -118,6 +127,10 @@ public class StatusBarWindowView extends FrameLayout {
     private boolean mExpandAnimationRunning;
     private boolean mExpandAnimationPending;
     private boolean mSuppressingWakeUpGesture;
+
+    private static ImageButton mDismissAllButton;
+    private static boolean wasHideAnimationAlreadyCalled = false;
+    private static boolean wasShowAnimationAlreadyCalled = false;
 
     private final GestureDetector.SimpleOnGestureListener mGestureListener =
             new GestureDetector.SimpleOnGestureListener() {
@@ -183,6 +196,7 @@ public class StatusBarWindowView extends FrameLayout {
                 Settings.Secure.DOZE_DOUBLE_TAP_GESTURE,
                 Settings.Secure.DOZE_TAP_SCREEN_GESTURE,
                 DOUBLE_TAP_SLEEP_GESTURE);
+                mStaticContext = context;
         mQuickQsOffsetHeight = getResources().getDimensionPixelSize(
                 com.android.internal.R.dimen.quick_qs_offset_height);
     }
@@ -274,6 +288,13 @@ public class StatusBarWindowView extends FrameLayout {
         mNotificationPanel = findViewById(R.id.notification_panel);
         mBrightnessMirror = findViewById(R.id.brightness_mirror);
         mLockIcon = findViewById(R.id.lock_icon);
+        mDismissAllButton = (ImageButton) findViewById(R.id.clear_notifications);
+    }
+
+    public static void setDismissAllOnClickListener(OnClickListener listener) {
+        if (mDismissAllButton != null) {
+            mDismissAllButton.setOnClickListener(listener);
+        }
     }
 
     @Override
