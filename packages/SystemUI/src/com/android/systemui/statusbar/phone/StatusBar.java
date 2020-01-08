@@ -1127,7 +1127,7 @@ public class StatusBar extends SystemUI implements DemoMode,
             dataupdated = true;
         }
 
-        if (QSBlurAlpha > 0 && !blurperformed && mState != StatusBarState.KEYGUARD && isQSBlurEnabled()) {
+        if (QSBlurAlpha > 0 && !blurperformed && !mIsKeyguard && isQSBlurEnabled()) {
             Bitmap bittemp = ImageUtilities.blurImage(mContext, ImageUtilities.screenshotSurface(mContext));
             Drawable blurbackground = new BitmapDrawable(mContext.getResources(), bittemp);
             blurperformed = true;
