@@ -59,4 +59,7 @@
   <java-symbol type="anim" name="slide_in_left_no_fade" />
   <java-symbol type="anim" name="slide_out_right_no_fade" />
 
+  <!-- Themes -->
+  <java-symbol type="color" name="theme_generic_semi_transparent_color" />
+
 </resources>
