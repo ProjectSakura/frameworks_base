@@ -188,6 +188,7 @@ import com.android.systemui.statusbar.CommandQueue;
 import com.android.systemui.statusbar.CrossFadeHelper;
 import com.android.systemui.statusbar.EmptyShadeView;
 import com.android.systemui.statusbar.GestureRecorder;
+import com.android.systemui.statusbar.info.DataUsageView;
 import com.android.systemui.statusbar.KeyboardShortcuts;
 import com.android.systemui.statusbar.KeyguardIndicationController;
 import com.android.systemui.statusbar.NavigationBarController;
@@ -496,6 +497,9 @@ public class StatusBar extends SystemUI implements DemoMode,
 
     public ImageView mQSBlurView;
     private boolean blurperformed = false;
+    private static Context mStaticContext;
+    private boolean dataupdated = false;
+    protected static NotificationPanelView mStaticNotificationPanel;
 
     // ensure quick settings is disabled until the current user makes it through the setup wizard
     @VisibleForTesting
@@ -888,10 +892,10 @@ public class StatusBar extends SystemUI implements DemoMode,
         mNotificationPanel = mStatusBarWindow.findViewById(R.id.notification_panel);
         mStackScroller = mStatusBarWindow.findViewById(R.id.notification_stack_scroller);
         mZenController.addCallback(this);
+        mStaticNotificationPanel = mNotificationPanel;
         mQSBlurView = mStatusBarWindow.findViewById(R.id.qs_blur);
         NotificationListContainer notifListContainer = (NotificationListContainer) mStackScroller;
         mNotificationLogger.setUpWithContainer(notifListContainer);
-
         mNotificationIconAreaController = SystemUIFactory.getInstance()
                 .createNotificationIconAreaController(context, this,
                         mWakeUpCoordinator, mKeyguardBypassController,
@@ -1117,15 +1121,21 @@ public class StatusBar extends SystemUI implements DemoMode,
 
 }
     public void updateBlurVisibility() {
+        int QSBlurAlpha = Math.round(255.0f * mStaticNotificationPanel.getExpandedFraction());
 
-        int QSBlurAlpha = Math.round(255.0f * mNotificationPanel.getExpandedFraction());
-        if (QSBlurAlpha > 0 && !blurperformed && !mIsKeyguard) {
+        if (QSBlurAlpha > 0 && !dataupdated && !mIsKeyguard) {
+            DataUsageView.updateUsage();
+            dataupdated = true;
+        }
+
+        if (QSBlurAlpha > 0 && !blurperformed && !mIsKeyguard ) {
             Bitmap bittemp = ImageUtilities.blurImage(mContext, ImageUtilities.screenshotSurface(mContext));
             Drawable blurbackground = new BitmapDrawable(mContext.getResources(), bittemp);
             blurperformed = true;
             mQSBlurView.setBackgroundDrawable(blurbackground);
         } else if (QSBlurAlpha == 0 || mState == StatusBarState.KEYGUARD) {
             blurperformed = false;
+            dataupdated = false;
             mQSBlurView.setBackgroundColor(Color.TRANSPARENT);
         }
         mQSBlurView.setAlpha(QSBlurAlpha);
