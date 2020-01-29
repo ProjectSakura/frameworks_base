@@ -1132,6 +1132,7 @@ public class StatusBar extends SystemUI implements DemoMode,
         // Private API call to make the shadows look better for Recents
         ThreadedRenderer.overrideProperty("ambientRatio", String.valueOf(1.5f));
 
+}
     public void updateBlurVisibility() {
 
         int QSBlurAlpha = Math.round(255.0f * mNotificationPanel.getExpandedFraction());
@@ -1146,7 +1147,6 @@ public class StatusBar extends SystemUI implements DemoMode,
         }
         mQSBlurView.setAlpha(QSBlurAlpha);
         mQSBlurView.getBackground().setAlpha(QSBlurAlpha);
-    }
     }
 
     protected QS createDefaultQSFragment() {
