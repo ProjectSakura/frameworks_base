@@ -41,6 +41,7 @@ import android.graphics.Rect;
 import android.graphics.Region;
 import android.hardware.biometrics.BiometricSourceType;
 import android.os.PowerManager;
+import android.os.UserHandle;
 import android.os.SystemClock;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -68,7 +69,7 @@ import com.android.systemui.Interpolators;
 import com.android.systemui.R;
 import com.android.systemui.fragments.FragmentHostManager;
 import com.android.systemui.fragments.FragmentHostManager.FragmentListener;
-import com.android.systemui.aosip.NotificationLightsView;
+import com.android.systemui.sakura.NotificationLightsView;
 import com.android.systemui.plugins.FalsingManager;
 import com.android.systemui.plugins.qs.QS;
 import com.android.systemui.plugins.statusbar.StatusBarStateController;
@@ -104,7 +105,7 @@ import com.android.systemui.statusbar.policy.OnHeadsUpChangedListener;
 import com.android.systemui.statusbar.policy.ZenModeController;
 import com.android.systemui.tuner.TunerService;
 import com.android.systemui.util.InjectionInflationController;
-
+import android.provider.Settings;
 import lineageos.providers.LineageSettings;
 
 import java.io.FileDescriptor;
