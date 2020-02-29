@@ -114,7 +114,7 @@
             android:id="@+id/network_traffic_holder"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
-            android:gravity="start|center_vertical"
+            android:gravity="center_vertical|end"
             >
 
             <org.lineageos.internal.statusbar.NetworkTraffic
@@ -122,7 +122,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:maxLines="2"
-                android:gravity="center_vertical|start" />
+                android:gravity="center_vertical|end" />
 
         </com.android.systemui.statusbar.LineageStatusBarItemHolder>
 
