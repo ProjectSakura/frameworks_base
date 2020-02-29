@@ -7436,6 +7436,12 @@ message MetricsEvent {
 
     // Panel for Mobile Data
     PANEL_MOBILE_DATA = 2002;
+
+    //Omni protos for custom qs tiles
+    CUSTOM_QUICK_TILES = 9003;
+
+    // Panel for Bluetooth
+    PANEL_BLUETOOTH = 9004;
   }
 }
 
