@@ -505,7 +505,6 @@ public class ScrimController implements ViewTreeObserver.OnPreDrawListener, OnCo
         }
 
         mState.AOD.setAodFrontScrimAlpha(alpha);
-        mState.PULSING.setAodFrontScrimAlpha(alpha);
     }
 
     /**
