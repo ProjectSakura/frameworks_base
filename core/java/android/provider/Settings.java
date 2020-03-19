@@ -9402,7 +9402,7 @@ public final class Settings {
             AWARE_LOCK_ENABLED,
             AWARE_TAP_PAUSE_GESTURE_COUNT,
             AWARE_TAP_PAUSE_TOUCH_COUNT,
-            VOLUME_LINK_NOTIFICATION
+            VOLUME_LINK_NOTIFICATION,
             LOCKSCREEN_VISUALIZER_ENABLED,
         };
 
