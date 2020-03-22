@@ -875,6 +875,7 @@ public class StatusBar extends SystemUI implements DemoMode,
     // ================================================================================
     protected void makeStatusBarView(@Nullable RegisterStatusBarResult result) {
         final Context context = mContext;
+        mStaticContext = mContext;
         updateDisplaySize(); // populates mDisplayMetrics
         updateResources();
         updateTheme();
