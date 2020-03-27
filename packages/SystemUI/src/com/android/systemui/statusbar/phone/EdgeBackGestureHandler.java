@@ -262,9 +262,6 @@ public class EdgeBackGestureHandler implements DisplayListener, TunerService.Tun
         mIsInTransientImmersiveStickyState =
                 (systemUiVisibility & SYSTEM_UI_FLAG_IMMERSIVE_STICKY) != 0
                 && (systemUiVisibility & NAVIGATION_BAR_TRANSIENT) != 0;
-
-    public void onSettingsChanged() {
-        updateEdgeHeightValue();
     }
 
     private void disposeInputChannel() {
