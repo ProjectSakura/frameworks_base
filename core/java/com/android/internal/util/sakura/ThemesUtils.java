@@ -36,4 +36,8 @@ public class ThemesUtils {
             "com.android.theme.chocox.system",
             "com.android.theme.chocox.systemui",
     };
+    public static final String[] MATERIAL_OCEAN = {
+            "com.android.theme.materialocean.system",
+            "com.android.theme.materialocean.systemui",
+    };
 }
