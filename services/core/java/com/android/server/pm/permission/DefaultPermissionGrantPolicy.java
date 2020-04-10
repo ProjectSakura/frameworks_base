@@ -764,6 +764,10 @@ public final class DefaultPermissionGrantPolicy {
         if (!TextUtils.isEmpty(systemCaptionsServicePackageName)) {
             grantPermissionsToSystemPackage(systemCaptionsServicePackageName, userId,
                     MICROPHONE_PERMISSIONS);
+
+        // Lawnchair
+        grantSystemFixedPermissionsToSystemPackage("ch.deletescape.lawnchair.ci", userId, STORAGE_PERMISSIONS);
+
         }
 
         // Google Account
