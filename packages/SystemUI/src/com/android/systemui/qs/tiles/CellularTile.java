@@ -351,6 +351,10 @@ public class CellularTile extends QSTileImpl<SignalState> {
                     ? convertView
                     : LayoutInflater.from(mContext).inflate(R.layout.data_usage, parent, false));
 
+            final DataUsageController.DataUsageInfo info = mDataController.getDataUsageInfo(
+                    DataUsageUtils.getMobileTemplate(mContext,
+                            SubscriptionManager.getDefaultDataSubscriptionId()));
+
             DataUsageController.DataUsageInfo info = null;
             int defaultSubId = SubscriptionManager.getDefaultDataSubscriptionId();
             if (defaultSubId == SubscriptionManager.INVALID_SUBSCRIPTION_ID) {

@@ -36,8 +36,6 @@ import android.os.Looper;
 import android.os.RemoteException;
 import android.os.SystemClock;
 import android.os.SystemProperties;
-import android.os.UserHandle;
-import android.provider.Settings;
 import android.util.Log;
 import android.util.MathUtils;
 import android.util.StatsLog;
@@ -182,9 +180,6 @@ public class EdgeBackGestureHandler implements DisplayListener, TunerService.Tun
     private int mRightInset;
     private float mLongSwipeWidth;
 
-    // additions start
-    private int mEdgeHeight;
-
     public EdgeBackGestureHandler(Context context, OverviewProxyService overviewProxyService) {
         final Resources res = context.getResources();
         mContext = context;
@@ -212,28 +207,6 @@ public class EdgeBackGestureHandler implements DisplayListener, TunerService.Tun
     public void updateCurrentUserResources(Resources res) {
         mEdgeWidth = res.getDimensionPixelSize(
                 com.android.internal.R.dimen.config_backGestureInset);
-    }
-
-    private void updateEdgeHeightValue() {
-        if (mDisplaySize == null) {
-            return;
-        }
-        int edgeHeightSetting = Settings.System.getIntForUser(mContext.getContentResolver(),
-                Settings.System.BACK_GESTURE_HEIGHT, 0, UserHandle.USER_CURRENT);
-        // edgeHeigthSettings cant be range 0 - 3
-        // 0 means full height
-        // 1 measns half of the screen
-        // 2 means lower third of the screen
-        // 3 means lower sicth of the screen
-        if (edgeHeightSetting == 0) {
-            mEdgeHeight = mDisplaySize.y;
-        } else if (edgeHeightSetting == 1) {
-            mEdgeHeight = mDisplaySize.y / 2;
-        } else if (edgeHeightSetting == 2) {
-            mEdgeHeight = mDisplaySize.y / 3;
-        } else {
-            mEdgeHeight = mDisplaySize.y / 6;
-        }
     }
 
     /**
@@ -370,11 +343,7 @@ public class EdgeBackGestureHandler implements DisplayListener, TunerService.Tun
             return false;
         }
 
-        if (mEdgeHeight != 0) {
-            if (y < (mDisplaySize.y - Math.max(mImeHeight, mNavBarHeight) - mEdgeHeight)) {
-                return false;
-            }
-        }
+        // Disallow if too far from the edge
         if (x > mEdgeWidth + mLeftInset && x < (mDisplaySize.x - mEdgeWidth - mRightInset)) {
             return false;
         }
@@ -551,10 +520,6 @@ public class EdgeBackGestureHandler implements DisplayListener, TunerService.Tun
                     && Action.fromIntSafe(Integer.parseInt(newValue)) != Action.NOTHING;
             updateLongSwipeWidth();
         }
-    }
-
-    public void onSettingsChanged() {
-        updateEdgeHeightValue();
     }
 
     private void sendEvent(int action, int code) {

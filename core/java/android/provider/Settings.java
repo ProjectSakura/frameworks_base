@@ -4682,24 +4682,11 @@ public final class Settings {
          */
         public static final String LOCKSCREEN_BATTERY_INFO = "lockscreen_battery_info";
 
-        /** @hide */
-        public static final String BACK_GESTURE_HEIGHT = "back_gesture_height";
-
-        /** @hide */
-        private static final Validator BACK_GESTURE_HEIGHT_VALIDATOR =
-                ANY_INTEGER_VALIDATOR;
-
         /**
          * QS blur
          * @hide
          */
         public static final String QS_BLUR = "qs_blur";
-
-        /** @hide */
-        public static final String GESTURE_PILL_TOGGLE = "gesture_pill_toggle";
-
-        /** @hide */
-        private static final Validator GESTURE_PILL_TOGGLE_VALIDATOR = BOOLEAN_VALIDATOR;
 
         /**
          * Enable/Disable screenshot sound
@@ -4757,14 +4744,6 @@ public final class Settings {
          * @hide
          */
         public static final String BATTERY_BAR_USE_GRADIENT_COLOR = "battery_bar_use_gradient_color";
-
-        /** Width of the navigation handle.
-         *  @hide
-         */
-        public static final String NAVIGATION_HANDLE_WIDTH = "navigation_handle_width";
-
-        /** @hide */
-        private static final Validator NAVIGATION_HANDLE_WIDTH_VALIDATOR = ANY_INTEGER_VALIDATOR;
 
         /**
          * Whether to use new QS panel bg tint or not
@@ -4881,9 +4860,6 @@ public final class Settings {
             PULSE_AMBIENT_LIGHT_COLOR,
             CHARGING_ANIMATION,
             FINGERPRINT_SUCCESS_VIB,
-            GESTURE_PILL_TOGGLE,
-            BACK_GESTURE_HEIGHT,
-            NAVIGATION_HANDLE_WIDTH,
             QS_PANEL_BG_USE_NEW_TINT,
             NOTIFICATION_HEADERS,
         };
@@ -5026,9 +5002,6 @@ public final class Settings {
             PRIVATE_SETTINGS.add(PULSE_AMBIENT_LIGHT_COLOR);
             PRIVATE_SETTINGS.add(CHARGING_ANIMATION);
             PRIVATE_SETTINGS.add(FINGERPRINT_SUCCESS_VIB);
-            PRIVATE_SETTINGS.add(GESTURE_PILL_TOGGLE);
-            PRIVATE_SETTINGS.add(BACK_GESTURE_HEIGHT);
-            PRIVATE_SETTINGS.add(NAVIGATION_HANDLE_WIDTH);
             PRIVATE_SETTINGS.add(QS_PANEL_BG_USE_NEW_TINT);
             PRIVATE_SETTINGS.add(SHOW_FOURG);
         }
@@ -5144,9 +5117,6 @@ public final class Settings {
             VALIDATORS.put(PULSE_AMBIENT_LIGHT_COLOR, PULSE_AMBIENT_LIGHT_COLOR_VALIDATOR);
             VALIDATORS.put(CHARGING_ANIMATION, CHARGING_ANIMATION_VALIDATOR);
             VALIDATORS.put(FINGERPRINT_SUCCESS_VIB, FINGERPRINT_SUCCESS_VIB_VALIDATOR);
-            VALIDATORS.put(GESTURE_PILL_TOGGLE, GESTURE_PILL_TOGGLE_VALIDATOR);
-            VALIDATORS.put(BACK_GESTURE_HEIGHT, BACK_GESTURE_HEIGHT_VALIDATOR);
-            VALIDATORS.put(NAVIGATION_HANDLE_WIDTH, NAVIGATION_HANDLE_WIDTH_VALIDATOR);
             VALIDATORS.put(QS_PANEL_BG_USE_NEW_TINT, QS_PANEL_BG_USE_NEW_TINT_VALIDATOR);
             VALIDATORS.put(NOTIFICATION_HEADERS, NOTIFICATION_HEADERS_VALIDATOR);
             VALIDATORS.put(SHOW_FOURG, SHOW_FOURG_VALIDATOR);
