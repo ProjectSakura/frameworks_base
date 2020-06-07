@@ -108,4 +108,7 @@
         <item>com.facebook.katana.LoginActivity</item> 
     </string-array>
 
+    <!-- FOD -->
+    <bool name="config_targetUsesInKernelDimming">true</bool>
+
 </resources>
