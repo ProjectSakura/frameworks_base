@@ -76,4 +76,7 @@
   <java-symbol type="string" name="gaming_mode_enabled_toast" />
   <java-symbol type="string" name="gaming_mode_disabled_toast" />
 
+  <!-- FOD -->
+  <java-symbol type="bool" name="config_targetUsesInKernelDimming" />
+
 </resources>
