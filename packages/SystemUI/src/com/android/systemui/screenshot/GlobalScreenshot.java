@@ -66,8 +66,6 @@ import android.graphics.PointF;
 import android.graphics.Rect;
 import android.media.AudioManager;
 import android.media.MediaActionSound;
-import android.media.Ringtone;
-import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -666,9 +664,10 @@ class GlobalScreenshot {
 
     private AsyncTask<Void, Void, Void> mSaveInBgTask;
 
+    private MediaActionSound mCameraSound;
     private AudioManager mAudioManager;
     private Vibrator mVibrator;
-    private Ringtone  mScreenshotSound;
+
 
     /**
      * @param context everything needs a context :(
@@ -738,13 +737,13 @@ class GlobalScreenshot {
         mPreviewWidth = panelWidth;
         mPreviewHeight = r.getDimensionPixelSize(R.dimen.notification_max_height);
 
+        // Setup the Camera shutter sound
+        mCameraSound = new MediaActionSound();
+        mCameraSound.load(MediaActionSound.SHUTTER_CLICK);
+
         // Grab system services needed for screenshot sound
         mAudioManager = (AudioManager) mContext.getSystemService(Context.AUDIO_SERVICE);
         mVibrator = (Vibrator) mContext.getSystemService(Context.VIBRATOR_SERVICE);
-
-        // Setup the Screenshot sound
-        mScreenshotSound= RingtoneManager.getRingtone(mContext,
-                    Uri.parse("file://" + "/system/media/audio/ui/camera_click.ogg"));
     }
 
     /**
@@ -990,12 +989,7 @@ class GlobalScreenshot {
                         }
                         break;
                     case AudioManager.RINGER_MODE_NORMAL:
-                        // Play the shutter sound to notify that we've taken a screenshot
-                        if (Settings.System.getIntForUser(mContext.getContentResolver(),
-                        Settings.System.SCREENSHOT_SOUND, 1, UserHandle.USER_CURRENT) == 1) {
-                    if (mScreenshotSound != null) {
-                        mScreenshotSound.play();
-                    }
+                        mCameraSound.play(MediaActionSound.SHUTTER_CLICK);
                         break;
                 }
 
@@ -1378,3 +1372,4 @@ class GlobalScreenshot {
         nm.cancel(SystemMessage.NOTE_GLOBAL_SCREENSHOT);
     }
 }
+
