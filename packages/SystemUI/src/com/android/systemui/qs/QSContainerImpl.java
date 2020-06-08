@@ -37,7 +37,7 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 
 import com.android.systemui.R;
-import com.android.systemui.crdroid.header.StatusBarHeaderMachine;
+import com.android.systemui.sakura.header.StatusBarHeaderMachine;
 import com.android.systemui.qs.customize.QSCustomizer;
 
 /**

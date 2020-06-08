@@ -75,7 +75,6 @@ public class TunerServiceImpl extends TunerService {
             QSTileHost.TILES_SETTING,
             Settings.Secure.DOZE_ALWAYS_ON,
             StatusBar.SCREEN_BRIGHTNESS_MODE,
-            VolumeDialogImpl.SETTING_VOLUME_PANEL_ON_LEFT,
     };
 
     private final Observer mObserver = new Observer();
