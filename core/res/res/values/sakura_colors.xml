@@ -16,6 +16,9 @@
     <!-- Themes -->
     <color name="theme_generic_semi_transparent_color">#EAFFFFFF</color>
 
+    <!-- Bootleg unneccesary gradient declaration | Just for our shishu bars -->
+    <color name="bootleg_accent_gradient_end_color">#00000000</color>
+
     <!-- Mizu -->
     <color name="theme_background_mizu">#ae000000</color>
 
