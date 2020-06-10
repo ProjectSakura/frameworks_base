@@ -891,7 +891,7 @@ public class Notifier {
                     break;
                 case MSG_WIRED_CHARGING_STARTED:
                 case MSG_WIRED_CHARGING_DISCONNECTED:
-                    showWiredChargingStarted(msg.arg1, msg.arg2);
+                    showWiredChargingStarted(msg.arg1);
                     break;
             }
         }
