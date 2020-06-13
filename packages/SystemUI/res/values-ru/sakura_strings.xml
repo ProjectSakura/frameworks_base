@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     Copyright (C) 2015-2019 AOSiP
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+-->
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+
+    <!-- QS Config -->
+    <string name="qs_menu_item_columns">Столбцы</string>
+    <string name="qs_menu_item_columns_landscape">Столбцы (ландашфт)</string>
+    <string name="qs_menu_item_columns_three">3</string>
+    <string name="qs_menu_item_columns_four">4</string>
+    <string name="qs_menu_item_columns_five">5</string>
+    <string name="qs_menu_item_columns_six">6</string>
+    <string name="qs_menu_item_columns_seven">7</string>
+    <string name="qs_menu_item_columns_eight">8</string>
+    <string name="qs_menu_item_columns_nine">9</string>
+    <string name="qs_menu_item_reset">Сбросить</string>
+    <string name="qs_menu_item_titles">Показывать надписи</string>
+
+    <!-- Reboot/Recovery QS tile -->
+    <string name="quick_settings_reboot_label">Перезапустить</string>
+    <string name="quick_settings_reboot_recovery_label">Режим Восстановление</string>
+
+    <!--QS data usage-->
+    <string name="usage_data">использовано</string>
+
+    <!-- DataSwitch Tile -->
+    <string name="qs_data_switch_label">Переключить сеть на другую SIM-card</string>
+    <string name="qs_data_switch_toast_0">В настоящее время SIM-карта не установлена</string>
+    <string name="qs_data_switch_toast_1">В настоящее время установлена только одна SIM-карта.</string>
+    <string name="qs_data_switch_changed_1">Использование SIM 1 для мобильных данных</string>
+    <string name="qs_data_switch_changed_2">Использование SIM 2 для мобильных данных</string>
+
+    <!-- FPS Info tile -->
+    <string name="quick_settings_fpsinfo_label">FPS Мониторинг</string>
+    <string name="accessibility_quick_settings_fpsinfo_off">Выключен</string>
+    <string name="accessibility_quick_settings_fpsinfo_on">Включен</string>
+
+    <!-- Alerting notification header label -->
+    <string name="notification_section_header_alerting">Оповещения</string>
+
+    <!-- Indication on the keyguard that is shown when the device is charging with a dash charger. Should match keyguard_plugged_in_dash_charging [CHAR LIMIT=40]-->
+    <string name="keyguard_indication_dash_charging_time"><xliff:g id="percentage">%2$s</xliff:g> • Быстрая зарядка (<xliff:g id="charging_time_left" example="4 hours and 2 minutes">%1$s</xliff:g> until full)</string>
+    <string name="keyguard_plugged_in_dash_charging"><xliff:g id="percentage">%s</xliff:g> • Быстрая зарядка</string>
+
+    <!-- Indication on the keyguard that is shown when the device is charging with a warp charger. Should match keyguard_plugged_in_warp_charging [CHAR LIMIT=40]-->
+    <string name="keyguard_indication_warp_charging_time"><xliff:g id="percentage">%2$s</xliff:g> • Warp Charging (<xliff:g id="charging_time_left" example="4 hours and 2 minutes">%1$s</xliff:g> until full)</string>
+    <string name="keyguard_plugged_in_warp_charging"><xliff:g id="percentage">%s</xliff:g> • Warp Charging</string>
+
+    <!-- Heads up snooze toast -->
+    <string name="heads_up_snooze_message_one_minute"><xliff:g id="string">%s</xliff:g> - уведомление отключено в течение 1 минуты.</string>
+    <string name="heads_up_snooze_message"><xliff:g id="string">%s</xliff:g> - уведомление отключено на <xliff:g id="number">%d</xliff:g> минут.</string>
+
+</resources>
