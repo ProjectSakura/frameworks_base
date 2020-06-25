@@ -4635,15 +4635,6 @@ public final class Settings {
         private static final Validator PULSE_AMBIENT_LIGHT_COLOR_VALIDATOR = ANY_STRING_VALIDATOR;
 
         /**
-         * Whether to show charging animation
-         * @hide
-         */
-        public static final String CHARGING_ANIMATION = "charging_animation";
-
-        /** @hide */
-        private static final Validator CHARGING_ANIMATION_VALIDATOR = BOOLEAN_VALIDATOR;
-
-        /**
          * whether to enable or disable vibration on succesful fingerprint auth
          *
          * @hide
@@ -4911,7 +4902,6 @@ public final class Settings {
             FORCE_EXPANDED_NOTIFICATIONS,
             PULSE_AMBIENT_LIGHT,
             PULSE_AMBIENT_LIGHT_COLOR,
-            CHARGING_ANIMATION,
             FINGERPRINT_SUCCESS_VIB,
             GESTURE_PILL_TOGGLE,
             BACK_GESTURE_HEIGHT,
@@ -5054,7 +5044,6 @@ public final class Settings {
             PRIVATE_SETTINGS.add(DISPLAY_COLOR_MODE);
             PRIVATE_SETTINGS.add(PULSE_AMBIENT_LIGHT);
             PRIVATE_SETTINGS.add(PULSE_AMBIENT_LIGHT_COLOR);
-            PRIVATE_SETTINGS.add(CHARGING_ANIMATION);
             PRIVATE_SETTINGS.add(FINGERPRINT_SUCCESS_VIB);
             PRIVATE_SETTINGS.add(GESTURE_PILL_TOGGLE);
             PRIVATE_SETTINGS.add(BACK_GESTURE_HEIGHT);
@@ -5164,7 +5153,6 @@ public final class Settings {
             VALIDATORS.put(FORCE_EXPANDED_NOTIFICATIONS, FORCE_EXPANDED_NOTIFICATIONS_VALIDATOR);
             VALIDATORS.put(PULSE_AMBIENT_LIGHT, PULSE_AMBIENT_LIGHT_VALIDATOR);
             VALIDATORS.put(PULSE_AMBIENT_LIGHT_COLOR, PULSE_AMBIENT_LIGHT_COLOR_VALIDATOR);
-            VALIDATORS.put(CHARGING_ANIMATION, CHARGING_ANIMATION_VALIDATOR);
             VALIDATORS.put(FINGERPRINT_SUCCESS_VIB, FINGERPRINT_SUCCESS_VIB_VALIDATOR);
             VALIDATORS.put(GESTURE_PILL_TOGGLE, GESTURE_PILL_TOGGLE_VALIDATOR);
             VALIDATORS.put(BACK_GESTURE_HEIGHT, BACK_GESTURE_HEIGHT_VALIDATOR);
