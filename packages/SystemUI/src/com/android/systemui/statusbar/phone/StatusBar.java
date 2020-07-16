@@ -642,6 +642,7 @@ public class StatusBar extends SystemUI implements DemoMode,
     private IOverlayManager mOverlayManager;
     private int mImmerseMode;
     private boolean mStockStatusBar = true;
+    private boolean mPortrait = true;
 
     // Notifies StatusBarKeyguardViewManager every time the keyguard transition is over,
     // this animation is tied to the scrim for historic reasons.
@@ -1018,7 +1019,7 @@ public class StatusBar extends SystemUI implements DemoMode,
                     checkBarModes();
                     mBurnInProtectionController =
                         new BurnInProtectionController(mContext, this, mStatusBarView);
-                    handleCutout(null);
+                    handleCutout();
                 }).getFragmentManager()
                 .beginTransaction()
                 .replace(R.id.status_bar_container, new CollapsedStatusBarFragment(),
@@ -3106,12 +3107,16 @@ public class StatusBar extends SystemUI implements DemoMode,
         updateResources();
         updateDisplaySize(); // populates mDisplayMetrics
 
-        if (DEBUG) {
-            Log.v(TAG, "configuration changed: " + mContext.getResources().getConfiguration());
-        }
+        mPortrait = newConfig.orientation == Configuration.ORIENTATION_PORTRAIT;
 
         mViewHierarchyManager.updateRowStates();
         mScreenPinningRequest.onConfigurationChanged();
+
+        if (mImmerseMode == 1) {
+            mUiOffloadThread.submit(() -> {
+                setBlackStatusBar(mPortrait);
+            });
+        }
     }
 
     @Override
@@ -5181,7 +5186,7 @@ public class StatusBar extends SystemUI implements DemoMode,
                         TunerService.parseInteger(newValue, 0);
                 if (mImmerseMode != immerseMode) {
                     mImmerseMode = immerseMode;
-                    handleCutout(null);
+                    handleCutout();
                 }
                 break;
             case STOCK_STATUSBAR_IN_HIDE:
@@ -5189,7 +5194,7 @@ public class StatusBar extends SystemUI implements DemoMode,
                         TunerService.parseIntegerSwitch(newValue, true);
                 if (mStockStatusBar != stockStatusBar) {
                     mStockStatusBar = stockStatusBar;
-                    handleCutout(null);
+                    handleCutout();
                 }
                 break;
             default:
@@ -5220,18 +5225,12 @@ public class StatusBar extends SystemUI implements DemoMode,
         }
     }
 
-    private void handleCutout(Configuration newConfig) {
-        boolean immerseMode;
-        if (newConfig == null) newConfig = mContext.getResources().getConfiguration();
-        if (newConfig == null || newConfig.orientation == Configuration.ORIENTATION_PORTRAIT) {
-            immerseMode = mImmerseMode == 1;
-        } else {
-            immerseMode = false;
-        }
-        setBlackStatusBar(immerseMode);
-
+    private void handleCutout() {
+        final boolean immerseMode = mImmerseMode == 1;
         final boolean hideCutoutMode = mImmerseMode == 2;
+
         mUiOffloadThread.submit(() -> {
+            setBlackStatusBar(mPortrait && immerseMode);
             ThemeAccentUtils.setImmersiveOverlay(mOverlayManager, mLockscreenUserManager.getCurrentUserId(),
                 immerseMode || hideCutoutMode);
             ThemeAccentUtils.setCutoutOverlay(mOverlayManager, mLockscreenUserManager.getCurrentUserId(),
