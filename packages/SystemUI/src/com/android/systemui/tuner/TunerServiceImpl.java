@@ -69,6 +69,7 @@ public class TunerServiceImpl extends TunerService {
             Settings.Secure.DOZE_ALWAYS_ON,
             Settings.Secure.MEDIA_CONTROLS_RESUME,
             StatusBar.SCREEN_BRIGHTNESS_MODE,
+            Secure.MEDIA_CONTROLS_RESUME_BLOCKED
     };
 
     private final Observer mObserver = new Observer();
