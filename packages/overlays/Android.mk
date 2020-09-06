@@ -50,6 +50,10 @@ LOCAL_REQUIRED_MODULES := \
 	FontRosemarySourceOverlay \
 	FontSonySketchSourceOverlay \
 	FontSurferSourceOverlay \
+	FontGoogleSansOverlay \
+	FontSanFranciscoOverlay \
+	FontOnePlusSlateOverlay \
+	FontInterOverlay \
 	IconPackCircularAndroidOverlay \
 	IconPackCircularLauncherOverlay \
 	IconPackCircularSettingsOverlay \
