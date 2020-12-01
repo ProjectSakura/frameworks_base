@@ -274,6 +274,4 @@
     <color name="misalignment_text_color">#F28B82</color>
 
     <color name="screenrecord_status_color">#E94235</color>
-
-    <color name="qs_icon_active_color">@*android:color/qs_icon_active_color</color>
 </resources>
