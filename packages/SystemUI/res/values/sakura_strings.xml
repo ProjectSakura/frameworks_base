@@ -66,4 +66,7 @@
     <string name="system_theme_style_pitchblack">Pitch black</string>
     <string name="system_theme_style_solarizeddark">Solarized dark</string>
 
+    <!-- Scrolling Screenshot string -->
+    <string name="scrollss">Scroll</string>
+
 </resources>
