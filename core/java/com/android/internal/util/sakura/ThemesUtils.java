@@ -42,8 +42,7 @@ public class ThemesUtils {
     };
     public static final String[] MIZU_THEMES = {
         "com.android.system.theme.mizu", // 0
-        "com.android.settings.theme.mizu", // 1
-        "com.android.systemui.theme.mizu", // 2
+        "com.android.systemui.theme.mizu", // 1
     };
 
     public static final String[] STATUSBAR_HEIGHT = {
