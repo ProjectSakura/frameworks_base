@@ -4741,9 +4741,6 @@ public final class Settings {
          */
         public static final String DISMISS_ALL_BUTTON = "dismiss_all_button";
 
-        /** @hide */
-        public static final String GESTURE_PILL_TOGGLE = "gesture_pill_toggle";
-
         /**
          * Sensor block per-package
          * @hide
