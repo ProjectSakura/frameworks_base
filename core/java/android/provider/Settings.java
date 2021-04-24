@@ -4953,7 +4953,12 @@ public final class Settings {
         public static final String QS_PANEL_BG_ALPHA = "qs_panel_bg_alpha";
 
         /**
-         * Three Finger Gesture from Oppo
+         * Whether to change the transparency of the notifications
+         * @hide
+         */
+        public static final String NOTIFICATION_BG_ALPHA = "notification_bg_alpha";
+
+        /**
          * @hide
          */
         public static final String THREE_FINGER_GESTURE = "three_finger_gesture";
