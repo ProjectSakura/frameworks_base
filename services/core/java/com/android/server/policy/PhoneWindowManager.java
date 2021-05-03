@@ -565,6 +565,7 @@ public class PhoneWindowManager implements WindowManagerPolicy {
     boolean mHardwareKeysDisable = false;
 
     // Tracks user-customisable behavior for certain key events
+    private Action mBackLongPressAction;
     private Action mHomeLongPressAction;
     private Action mHomeDoubleTapAction;
     private Action mMenuPressAction;
@@ -783,7 +784,7 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                     showPictureInPictureMenuInternal();
                     break;
                 case MSG_BACK_LONG_PRESS:
-                    backLongPress();
+                    backLongPress((KeyEvent) msg.obj);
                     break;
                 case MSG_ACCESSIBILITY_SHORTCUT:
                     accessibilityShortcutActivated();
@@ -886,6 +887,9 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                     LineageSettings.System.TORCH_LONG_PRESS_POWER_TIMEOUT), false, this,
                     UserHandle.USER_ALL);
             resolver.registerContentObserver(LineageSettings.System.getUriFor(
+                    LineageSettings.System.KEY_BACK_LONG_PRESS_ACTION), false, this,
+                    UserHandle.USER_ALL);
+           resolver.registerContentObserver(LineageSettings.System.getUriFor(
                     LineageSettings.System.KEY_HOME_LONG_PRESS_ACTION), false, this,
                     UserHandle.USER_ALL);
             resolver.registerContentObserver(LineageSettings.System.getUriFor(
@@ -1023,13 +1027,13 @@ public class PhoneWindowManager implements WindowManagerPolicy {
         }
     }
 
-    private void interceptBackKeyDown() {
+    private void interceptBackKeyDown(KeyEvent event) {
         mLogger.count("key_back_down", 1);
         // Reset back key state for long press
         mBackKeyHandled = false;
 
         if (hasLongPressOnBackBehavior()) {
-            Message msg = mHandler.obtainMessage(MSG_BACK_LONG_PRESS);
+            Message msg = mHandler.obtainMessage(MSG_BACK_LONG_PRESS, event);
             msg.setAsynchronous(true);
             mHandler.sendMessageDelayed(msg,
                     ViewConfiguration.get(mContext).getDeviceGlobalActionKeyTimeout());
@@ -1467,16 +1471,12 @@ public class PhoneWindowManager implements WindowManagerPolicy {
         }
     }
 
-    private void backLongPress() {
+    private void backLongPress(KeyEvent event) {
         mBackKeyHandled = true;
 
-        switch (mLongPressOnBackBehavior) {
-            case LONG_PRESS_BACK_NOTHING:
-                break;
-            case LONG_PRESS_BACK_GO_TO_VOICE_ASSIST:
-                launchVoiceAssist(false /* allowDuringSetup */);
-                break;
-        }
+        performHapticFeedback(HapticFeedbackConstants.LONG_PRESS, false,
+                "Back - Long Press");
+        performKeyAction(mBackLongPressAction, event);
     }
 
     private void accessibilityShortcutActivated() {
@@ -1532,7 +1532,7 @@ public class PhoneWindowManager implements WindowManagerPolicy {
     }
 
     private boolean hasLongPressOnBackBehavior() {
-        return mLongPressOnBackBehavior != LONG_PRESS_BACK_NOTHING;
+        return mBackLongPressAction != Action.NOTHING;
     }
 
     private void interceptScreenshotChord() {
@@ -2337,6 +2337,16 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                 org.lineageos.platform.internal.R.integer.config_longPressOnAppSwitchBehavior));
 
         mEdgeLongSwipeAction = Action.NOTHING;
+
+        mBackLongPressAction = Action.fromIntSafe(res.getInteger(
+                org.lineageos.platform.internal.R.integer.config_longPressOnBackBehavior));
+        if (mBackLongPressAction.ordinal() > Action.SLEEP.ordinal()) {
+            mBackLongPressAction = Action.NOTHING;
+        }
+
+        mBackLongPressAction = Action.fromSettings(resolver,
+                LineageSettings.System.KEY_BACK_LONG_PRESS_ACTION,
+                mBackLongPressAction);
 
         mHomeLongPressAction = Action.fromIntSafe(res.getInteger(
                 org.lineageos.platform.internal.R.integer.config_longPressOnHomeBehavior));
@@ -4279,7 +4289,7 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                 }
 
                 if (down) {
-                    interceptBackKeyDown();
+                    interceptBackKeyDown(event);
                 } else {
                     boolean handled = interceptBackKeyUp(event);
 
