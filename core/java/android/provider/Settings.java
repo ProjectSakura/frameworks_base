@@ -5412,8 +5412,6 @@ public final class Settings {
          */
         public static final String SMART_CUTOFF_RESUME_TEMPERATURE = "smart_cutoff_resume_temperature";
 
-
-
         /**
          * Whether to show charging animation
          * @hide
@@ -5425,6 +5423,12 @@ public final class Settings {
          * @hide
          */
         public static final String CLIPBOARD_TOAST_INFO = "clipboard_toast_info";
+
+        /**
+         * Whether to enable or disable lockscreen background blur
+         * @hide
+         */
+        public static final String LOCKSCREEN_BLUR = "lockscreen_blur";
 
         /**
          * Keys we no longer back up under the current schema, but want to continue to
