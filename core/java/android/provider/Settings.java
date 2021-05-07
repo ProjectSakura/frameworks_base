@@ -5375,12 +5375,6 @@ public final class Settings {
         public static final String QS_DATAUSAGE = "qs_datausage";
 
         /**
-         * Whether to show media player in QS
-         * @hide
-         */
-        public static final String QS_MEDIA_PLAYER = "qs_media_player";
-
-        /**
          * @hide
          */
         public static final String OMNIJAWS_WEATHER_ICON_PACK = "omnijaws_weather_icon_pack";
