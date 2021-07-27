@@ -210,9 +210,7 @@ public abstract class AuthBiometricView extends LinearLayout {
     protected Bundle mSavedState;
 
     protected boolean mHasFod;
-
     protected final PackageManager mPackageManager;
-    protected boolean mHasFod;
 
     /**
      * Delay after authentication is confirmed, before the dialog should be animated away.
