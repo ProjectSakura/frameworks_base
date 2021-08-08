@@ -26,4 +26,5 @@
     <string name="salute_evening">ערב טוב</string>
     <string name="salute_night">לילה טוב</string>
     <string name="salute_sleep">לך לישון</string>
+    <!-- android s clock -->
 </resources>
