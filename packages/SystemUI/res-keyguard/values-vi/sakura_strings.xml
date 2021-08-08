@@ -26,4 +26,5 @@
     <string name="salute_evening">Chào buổi tối</string>
     <string name="salute_night">Chúc ngủ ngon</string>
     <string name="salute_sleep">Khoá màn hình</string>
+    <!-- android s clock -->
 </resources>

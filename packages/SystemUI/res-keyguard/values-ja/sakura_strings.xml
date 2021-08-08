@@ -26,4 +26,5 @@
     <string name="salute_evening">こんばんは</string>
     <string name="salute_night">おやすみなさい</string>
     <string name="salute_sleep">寝ましょう</string>
+    <!-- android s clock -->
 </resources>

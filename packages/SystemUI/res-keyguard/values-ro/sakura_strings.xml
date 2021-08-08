@@ -26,4 +26,5 @@
     <string name="salute_evening">Bună seara</string>
     <string name="salute_night">Noapte bună</string>
     <string name="salute_sleep">Du-te la somn</string>
+    <!-- android s clock -->
 </resources>
