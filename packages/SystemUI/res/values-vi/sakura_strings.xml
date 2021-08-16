@@ -80,4 +80,6 @@
     <string name="quick_settings_region_screenshot_label">Chụp một phần màn hình</string>
     <!-- Name of the volte/vowifi status bar icon. -->
     <string name="status_bar_ims">VoLTE/VoWiFi</string>
+    <!-- Ambient Music Ticker -->
+    <string name="ambientmusic_songinfo" formatted="false">%s by %s</string>
 </resources>
