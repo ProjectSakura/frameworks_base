@@ -13,22 +13,22 @@
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <!-- Gaming mode -->
-    <string name="notification_channel_gaming">Mode Permainan</string>
-    <string name="gaming_mode_notification_title">Mode Permainan diaktifkan</string>
-    <string name="gaming_mode_notification_content">Ketuk untuk mematikan Mode Permainan</string>
-    <string name="gaming_mode_enabled_toast">Mode Permainan diaktifkan</string>
-    <string name="gaming_mode_disabled_toast">Mode Permainan dinonaktifkan</string>
+    <string name="notification_channel_gaming">Pelitila</string>
+    <string name="gaming_mode_notification_title">Pelitila käytössä</string>
+    <string name="gaming_mode_notification_content">Napauta pois päältä pelitila</string>
+    <string name="gaming_mode_enabled_toast">Pelitila päällä</string>
+    <string name="gaming_mode_disabled_toast">Pelitila pois päältä</string>
     <!-- Button that copies the url to the log of a crashed application -->
-    <string name="aerr_copy">Salin URL riwayat kerusakan</string>
-    <string name="url_copy_success">URL berhasil disalin</string>
-    <string name="url_copy_failed">Terjadi kesalahan saat mengunggah log ke Hastebin</string>
+    <string name="aerr_copy">Kopioi kaatumislokin osoite</string>
+    <string name="url_copy_success">URL-osoite kopioitu onnistuneesti</string>
+    <string name="url_copy_failed">Virhe tapahtui ladattaessa lokia Hastebiniin</string>
     <!-- Clipboard access toast -->
-    <string name="app_clipboard_access_denied">%1$s ditolak akses ke clipboard</string>
-    <string name="app_clipboard_access_granted">%1$s diberi akses ke clipboard</string>
+    <string name="app_clipboard_access_denied">%1$s evättiin pääsy leikepöydälle</string>
+    <string name="app_clipboard_access_granted">%1$s sai käyttöoikeuden leikepöydälle</string>
     <!-- [CHAR LIMIT=NONE] Title of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
-    <string name="permlab_accessFontManager">akses pengelola font</string>
+    <string name="permlab_accessFontManager">pääsy kirjasinten hallintaan</string>
     <!-- [CHAR LIMIT=NONE] Description of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
-    <string name="permdesc_accessFontManager">Izinkan aplikasi untuk mengakses pengelola font.</string>
+    <string name="permdesc_accessFontManager">Antaa sovelluksen käyttää kirjasinten hallintaa.</string>
     <!-- [CHAR LIMIT=NONE] Error when a package is installed but got the missing fonts.xml file, notifying the user why it isn't showing up. -->
-    <string name="fontservice_incompatible_font">Paket font yang Anda pasang tidak kompatibel dikarenakan hilangnya fonts.xml dalam berkasnya. Harap hubungi pengembang berkas font untuk dukungan.</string>
+    <string name="fontservice_incompatible_font">Asentamasi kirjasinpaketti ei ole yhteensopiva, koska tiedostoista puuttuu fonts.xml. Ota yhteyttä pakettikehittäjään saadaksesi tukea.</string>
 </resources>
