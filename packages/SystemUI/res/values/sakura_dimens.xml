@@ -70,4 +70,10 @@
 
     <!-- The height of the WiFi toggle layout in Internet panel -->
     <dimen name="internet_dialog_wifi_toggle_height">56dp</dimen>
+    
+    <!-- Width of the big battery circle icon in the status bar. -->
+    <dimen name="status_bar_battery_icon_big_circle_width">20.5dp</dimen>
+
+    <!-- Height of the big battery circle icon in the status bar. -->
+    <dimen name="status_bar_battery_icon_big_circle_height">@dimen/status_bar_battery_icon_big_circle_width</dimen>
 </resources>
