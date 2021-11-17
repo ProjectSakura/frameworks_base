@@ -161,6 +161,7 @@ public class VolumeDialogImpl implements VolumeDialog,
     private Window mWindow;
     private CustomDialog mDialog;
     private ViewGroup mDialogView;
+    private ViewGroup mDialogMainView;
     private ViewGroup mDialogRowsView;
     private ViewGroup mRinger;
     private ViewGroup mMediaOutputView;
@@ -288,6 +289,14 @@ public class VolumeDialogImpl implements VolumeDialog,
 
     private void initDialog() {
         mDialog = new CustomDialog(mContext);
+
+        // Gravitate various views left/right depending on panel placement setting.
+        int panelGravity =
+                mContext.getResources().getInteger(R.integer.volume_dialog_gravity);
+        if (!mShowActiveStreamOnly) {
+            panelGravity = mVolumePanelOnLeft ? Gravity.LEFT : Gravity.RIGHT;
+        }
+
         mConfigurableTexts = new ConfigurableTexts(mContext);
         mHovering = false;
         mShowing = false;
@@ -367,6 +376,17 @@ public class VolumeDialogImpl implements VolumeDialog,
             rescheduleTimeoutH();
             return true;
         });
+
+        FrameLayout.LayoutParams dialogViewLP =
+                (FrameLayout.LayoutParams) mDialogView.getLayoutParams();
+        dialogViewLP.gravity = mShowActiveStreamOnly ? panelGravity
+                : Gravity.CENTER_VERTICAL;
+        mDialogView.setLayoutParams(dialogViewLP);
+
+        mDialogMainView = mDialog.findViewById(R.id.main);
+        if (mDialogMainView != null) {
+            setLayoutGravity(mDialogMainView.getLayoutParams(), panelGravity);
+        }
 
         mDialogRowsView = mDialog.findViewById(R.id.volume_dialog_rows);
         mRinger = mDialog.findViewById(R.id.ringer);
