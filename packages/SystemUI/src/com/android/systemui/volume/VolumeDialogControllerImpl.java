@@ -53,6 +53,7 @@ import android.text.TextUtils;
 import android.util.ArrayMap;
 import android.util.Log;
 import android.util.Slog;
+import android.view.KeyEvent;
 import android.view.accessibility.AccessibilityManager;
 
 import androidx.lifecycle.Observer;
@@ -136,6 +137,12 @@ public class VolumeDialogControllerImpl implements VolumeDialogController, Dumpa
     private boolean mShowA11yStream;
     private boolean mShowVolumeDialog;
     private boolean mShowSafetyWarning;
+
+    private boolean mAdaptivePlaybackEnabled;
+    private int mAdaptivePlaybackTimeout;
+    private boolean mIsResumable;
+    private final Handler mMediaStateHandler = new Handler();
+
     private long mLastToggledRingerOn;
     private final NotificationManager mNotificationManager;
 
@@ -187,6 +194,13 @@ public class VolumeDialogControllerImpl implements VolumeDialogController, Dumpa
         mVolumeController.setA11yMode(accessibilityVolumeStreamActive ?
                     VolumePolicy.A11Y_MODE_INDEPENDENT_A11Y_VOLUME :
                         VolumePolicy.A11Y_MODE_MEDIA_A11Y_VOLUME);
+
+        mAdaptivePlaybackEnabled = Settings.System.getIntForUser(
+                mContext.getContentResolver(), Settings.System.ADAPTIVE_PLAYBACK_ENABLED, 0,
+                UserHandle.USER_CURRENT) == 1;
+        mAdaptivePlaybackTimeout = Settings.System.getIntForUser(
+                mContext.getContentResolver(), Settings.System.ADAPTIVE_PLAYBACK_TIMEOUT,
+                30000, UserHandle.USER_CURRENT);
     }
 
     public AudioManager getAudioManager() {
@@ -441,8 +455,10 @@ public class VolumeDialogControllerImpl implements VolumeDialogController, Dumpa
                     packageManager.getComponentEnabledSetting(componentName)
                     == PackageManager.COMPONENT_ENABLED_STATE_ENABLED, fromTooltip);
         } catch (Exception ex) {
-            Log.e(TAG,
-                    "isCaptionsServiceEnabled failed to check for captions component", ex);
+            if (D.BUG) {
+                Log.i(TAG,
+                    "isCaptionsServiceEnabled failed to check for captions component");
+            }
             mCallbacks.onCaptionComponentStateChanged(false, fromTooltip);
         }
     }
@@ -543,6 +559,7 @@ public class VolumeDialogControllerImpl implements VolumeDialogController, Dumpa
         updateRingerModeExternalW(mRingerModeObservers.mRingerMode.getValue());
         updateZenModeW();
         updateZenConfig();
+        updateLinkNotificationConfigW();
         updateEffectsSuppressorW(mNoMan.getEffectsSuppressor());
         mCallbacks.onStateChanged(mState);
     }
@@ -560,6 +577,28 @@ public class VolumeDialogControllerImpl implements VolumeDialogController, Dumpa
         final StreamState ss = streamStateW(stream);
         if (ss.level == level) return false;
         ss.level = level;
+        if (stream == AudioSystem.STREAM_MUSIC && level == 0
+                  && mAudio.isMusicActive()) {
+            if (mAdaptivePlaybackEnabled) {
+                mAudio.dispatchMediaKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN,
+                        KeyEvent.KEYCODE_MEDIA_PAUSE));
+                mAudio.dispatchMediaKeyEvent(new KeyEvent(KeyEvent.ACTION_UP,
+                        KeyEvent.KEYCODE_MEDIA_PAUSE));
+                mIsResumable = true;
+                mMediaStateHandler.removeCallbacksAndMessages(null);
+                mMediaStateHandler.postDelayed(() -> {
+                    mIsResumable = false;
+                }, mAdaptivePlaybackTimeout);
+            }
+        }
+        if (stream == AudioSystem.STREAM_MUSIC && level > 0 && mIsResumable) {
+            mMediaStateHandler.removeCallbacksAndMessages(null);
+            mAudio.dispatchMediaKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN,
+                    KeyEvent.KEYCODE_MEDIA_PLAY));
+            mAudio.dispatchMediaKeyEvent(new KeyEvent(KeyEvent.ACTION_UP,
+                    KeyEvent.KEYCODE_MEDIA_PLAY));
+            mIsResumable = false;
+        }
         if (isLogWorthy(stream)) {
             Events.writeEvent(Events.EVENT_LEVEL_CHANGED, stream, level);
         }
@@ -1065,8 +1104,14 @@ public class VolumeDialogControllerImpl implements VolumeDialogController, Dumpa
                 Settings.Global.getUriFor(Settings.Global.ZEN_MODE);
         private final Uri ZEN_MODE_CONFIG_URI =
                 Settings.Global.getUriFor(Settings.Global.ZEN_MODE_CONFIG_ETAG);
+
         private final Uri VOLUME_LINK_NOTIFICATION_URI =
                 Settings.Secure.getUriFor(Settings.Secure.VOLUME_LINK_NOTIFICATION);
+
+        private final Uri ADAPTIVE_PLAYBACK_URI =
+                Settings.System.getUriFor(Settings.System.ADAPTIVE_PLAYBACK_ENABLED);
+        private final Uri ADAPTIVE_PLAYBACK_TIMEOUT_URI =
+                Settings.System.getUriFor(Settings.System.ADAPTIVE_PLAYBACK_TIMEOUT);
 
         public SettingObserver(Handler handler) {
             super(handler);
@@ -1077,6 +1122,10 @@ public class VolumeDialogControllerImpl implements VolumeDialogController, Dumpa
             mContext.getContentResolver().registerContentObserver(ZEN_MODE_CONFIG_URI, false, this);
             mContext.getContentResolver().registerContentObserver(VOLUME_LINK_NOTIFICATION_URI,
                     false, this);
+            mContext.getContentResolver()
+                    .registerContentObserver(ADAPTIVE_PLAYBACK_URI, false, this);
+            mContext.getContentResolver()
+                    .registerContentObserver(ADAPTIVE_PLAYBACK_TIMEOUT_URI, false, this);
         }
 
         public void destroy() {
@@ -1099,6 +1148,17 @@ public class VolumeDialogControllerImpl implements VolumeDialogController, Dumpa
             if (changed) {
                 mCallbacks.onStateChanged(mState);
             }
+
+            if (ADAPTIVE_PLAYBACK_URI.equals(uri)) {
+                mAdaptivePlaybackEnabled = Settings.System.getIntForUser(
+                        mContext.getContentResolver(), Settings.System.ADAPTIVE_PLAYBACK_ENABLED,
+                        0, UserHandle.USER_CURRENT) == 1;
+            }
+            if (ADAPTIVE_PLAYBACK_TIMEOUT_URI.equals(uri)) {
+                mAdaptivePlaybackTimeout = Settings.System.getIntForUser(
+                        mContext.getContentResolver(), Settings.System.ADAPTIVE_PLAYBACK_TIMEOUT,
+                        30000, UserHandle.USER_CURRENT);
+            }
         }
     }
 
@@ -1109,6 +1169,7 @@ public class VolumeDialogControllerImpl implements VolumeDialogController, Dumpa
             filter.addAction(AudioManager.VOLUME_CHANGED_ACTION);
             filter.addAction(AudioManager.STREAM_DEVICES_CHANGED_ACTION);
             filter.addAction(AudioManager.STREAM_MUTE_CHANGED_ACTION);
+            filter.addAction(AudioManager.VOLUME_STEPS_CHANGED_ACTION);
             filter.addAction(NotificationManager.ACTION_EFFECTS_SUPPRESSOR_CHANGED);
             filter.addAction(Intent.ACTION_CONFIGURATION_CHANGED);
             filter.addAction(Intent.ACTION_SCREEN_OFF);
@@ -1149,6 +1210,8 @@ public class VolumeDialogControllerImpl implements VolumeDialogController, Dumpa
                 if (D.BUG) Log.d(TAG, "onReceive STREAM_MUTE_CHANGED_ACTION stream=" + stream
                         + " muted=" + muted);
                 changed = updateStreamMuteW(stream, muted);
+            } else if (action.equals(AudioManager.VOLUME_STEPS_CHANGED_ACTION)) {
+                getState();
             } else if (action.equals(NotificationManager.ACTION_EFFECTS_SUPPRESSOR_CHANGED)) {
                 if (D.BUG) Log.d(TAG, "onReceive ACTION_EFFECTS_SUPPRESSOR_CHANGED");
                 changed = updateEffectsSuppressorW(mNoMan.getEffectsSuppressor());

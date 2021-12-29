@@ -336,6 +336,7 @@ import com.android.internal.util.FastPrintWriter;
 import com.android.internal.util.FrameworkStatsLog;
 import com.android.internal.util.MemInfoReader;
 import com.android.internal.util.Preconditions;
+import com.android.internal.util.sakura.GamingModeController;
 import com.android.internal.util.function.HeptFunction;
 import com.android.internal.util.function.QuadFunction;
 import com.android.internal.util.function.TriFunction;
@@ -452,11 +453,11 @@ public class ActivityManagerService extends IActivityManager.Stub
     private static final String SHELL_APP_PACKAGE = "com.android.shell";
 
     /** Control over CPU and battery monitoring */
-    // write battery stats every 30 minutes.
-    static final long BATTERY_STATS_TIME = 30 * 60 * 1000;
+    // write battery stats every 45 minutes.
+    static final long BATTERY_STATS_TIME = 45 * 60 * 1000;
     static final boolean MONITOR_CPU_USAGE = true;
-    // don't sample cpu less than every 5 seconds.
-    static final long MONITOR_CPU_MIN_TIME = 5 * 1000;
+    // don't sample cpu less than every 10 seconds.
+    static final long MONITOR_CPU_MIN_TIME = 10 * 1000;
     // wait possibly forever for next cpu sample.
     static final long MONITOR_CPU_MAX_TIME = 0x0fffffff;
     static final boolean MONITOR_THREAD_CPU_USAGE = false;
@@ -572,6 +573,8 @@ public class ActivityManagerService extends IActivityManager.Stub
 
     private static final int NATIVE_DUMP_TIMEOUT_MS = 2000; // 2 seconds;
     private static final int JAVA_DUMP_MINIMUM_SIZE = 100; // 100 bytes.
+
+    private static final String PROP_REFRESH_TYPEFACE = "sys.refresh_typeface";
 
     OomAdjuster mOomAdjuster;
     final LowMemDetector mLowMemDetector;
@@ -1667,6 +1670,8 @@ public class ActivityManagerService extends IActivityManager.Stub
 
     private final PlatformCompat mPlatformCompat;
 
+    final ZygoteTypefaceRefreshUpdate mZygoteTypefaceRefresh;
+
     PackageManagerInternal mPackageManagerInt;
     PermissionManagerServiceInternal mPermissionManagerInt;
 
@@ -1680,6 +1685,12 @@ public class ActivityManagerService extends IActivityManager.Stub
     private ParcelFileDescriptor[] mLifeMonitorFds;
 
     static final HostingRecord sNullHostingRecord = new HostingRecord(null);
+
+    final SwipeToScreenshotObserver mSwipeToScreenshotObserver;
+    private boolean mIsSwipeToScreenshotEnabled;
+
+    private GamingModeController mGamingModeController;
+
     /**
      * Used to notify activity lifecycle events.
      */
@@ -2510,6 +2521,41 @@ public class ActivityManagerService extends IActivityManager.Stub
         }
         return mAppOpsManager;
     }
+    
+    static class ZygoteTypefaceRefreshUpdate extends ContentObserver {
+
+        private final Context mContext;
+
+        public ZygoteTypefaceRefreshUpdate(Handler handler, Context context) {
+            super(handler);
+            mContext = context;
+        }
+
+        public void registerObserver() {
+            mContext.getContentResolver().registerContentObserver(
+                    Settings.System.getUriFor(Settings.System.FONT_SCALE),
+                    false,
+                    this);
+            update();
+        }
+
+        private void update() {
+            // Check if zygote should refresh its fonts
+            if (SystemProperties.getBoolean(PROP_REFRESH_TYPEFACE, false)) {
+                SystemProperties.set(PROP_REFRESH_TYPEFACE, "false");
+                ZYGOTE_PROCESS.refreshTypeface();
+            }
+        }
+
+        public void onChange(boolean selfChange) {
+            update();
+        }
+    }
+
+    @VisibleForTesting
+    public ActivityManagerService(Injector injector) {
+        this(injector, null /* handlerThread */);
+    }
 
     /**
      * Provides the basic functionality for activity task related tests when a handler thread is
@@ -2554,10 +2600,12 @@ public class ActivityManagerService extends IActivityManager.Stub
         mProcStartHandlerThread = null;
         mProcStartHandler = null;
         mHiddenApiBlacklist = null;
+        mZygoteTypefaceRefresh = null;
         mFactoryTest = FACTORY_TEST_OFF;
         mUgmInternal = LocalServices.getService(UriGrantsManagerInternal.class);
         mInternal = new LocalService();
         mPendingStartActivityUids = new PendingStartActivityUids(mContext);
+        mSwipeToScreenshotObserver = null;
     }
 
     // Note: This method is invoked on the main thread but may need to attach various
@@ -2696,6 +2744,7 @@ public class ActivityManagerService extends IActivityManager.Stub
         };
 
         mHiddenApiBlacklist = new HiddenApiSettings(mHandler, mContext);
+        mZygoteTypefaceRefresh = new ZygoteTypefaceRefreshUpdate(mHandler, mContext);
 
         Watchdog.getInstance().addMonitor(this);
         Watchdog.getInstance().addThread(mHandler);
@@ -2716,6 +2765,7 @@ public class ActivityManagerService extends IActivityManager.Stub
 
         mInternal = new LocalService();
         mPendingStartActivityUids = new PendingStartActivityUids(mContext);
+        mSwipeToScreenshotObserver = new SwipeToScreenshotObserver(mHandler, mContext);
     }
 
     public void setSystemServiceManager(SystemServiceManager mgr) {
@@ -5235,12 +5285,7 @@ public class ActivityManagerService extends IActivityManager.Stub
                 }
             }
 
-            // We deprecated Build.SERIAL and it is not accessible to
-            // Instant Apps and target APIs higher than O MR1. Since access to the serial
-            // is now behind a permission we push down the value.
-            final String buildSerial = (!appInfo.isInstantApp()
-                    && appInfo.targetSdkVersion < Build.VERSION_CODES.P)
-                            ? sTheRealBuildSerial : Build.UNKNOWN;
+            final String buildSerial = Build.UNKNOWN;
 
             // Check if this is a secondary process that should be incorporated into some
             // currently active instrumentation.  (Note we do this AFTER all of the profiling
@@ -5510,7 +5555,7 @@ public class ActivityManagerService extends IActivityManager.Stub
             storageManager.commitChanges();
         } catch (Exception e) {
             PowerManager pm = (PowerManager)
-                     mInjector.getContext().getSystemService(Context.POWER_SERVICE);
+                     mContext.getSystemService(Context.POWER_SERVICE);
             pm.reboot("Checkpoint commit failed");
         }
 
@@ -7068,7 +7113,8 @@ public class ActivityManagerService extends IActivityManager.Stub
                 cpr = mProviderMap.getProviderByName(name, UserHandle.USER_SYSTEM);
                 if (cpr != null) {
                     cpi = cpr.info;
-                    if (isSingleton(cpi.processName, cpi.applicationInfo,
+                    if (r != null &&
+                        isSingleton(cpi.processName, cpi.applicationInfo,
                             cpi.name, cpi.flags)
                             && isValidSingletonCall(r == null ? callingUid : r.uid,
                                     cpi.applicationInfo.uid)) {
@@ -7231,7 +7277,8 @@ public class ActivityManagerService extends IActivityManager.Stub
                 // (it's a call within the same user || the provider is a
                 // privileged app)
                 // Then allow connecting to the singleton provider
-                boolean singleton = isSingleton(cpi.processName, cpi.applicationInfo,
+                boolean singleton = r != null &&
+                    isSingleton(cpi.processName, cpi.applicationInfo,
                         cpi.name, cpi.flags)
                         && isValidSingletonCall(r == null ? callingUid : r.uid,
                                 cpi.applicationInfo.uid);
@@ -7925,6 +7972,9 @@ public class ActivityManagerService extends IActivityManager.Stub
         RescueParty.onSettingsProviderPublished(mContext);
 
         //mUsageStatsService.monitorPackages();
+
+        // Gaming mode provider
+        mGamingModeController = new GamingModeController(mContext);
     }
 
     void startPersistentApps(int matchFlags) {
@@ -8584,8 +8634,8 @@ public class ActivityManagerService extends IActivityManager.Stub
 
     @Override
     public void requestSystemServerHeapDump() {
-        if (!Build.IS_DEBUGGABLE) {
-            Slog.wtf(TAG, "requestSystemServerHeapDump called on a user build");
+        if (!Build.IS_ENG) {
+            Slog.wtf(TAG, "requestSystemServerHeapDump called on a non eng build.");
             return;
         }
         if (Binder.getCallingUid() != SYSTEM_UID) {
@@ -9491,6 +9541,7 @@ public class ActivityManagerService extends IActivityManager.Stub
         final long waitForNetworkTimeoutMs = Settings.Global.getLong(resolver,
                 NETWORK_ACCESS_TIMEOUT_MS, NETWORK_ACCESS_TIMEOUT_DEFAULT_MS);
         mHiddenApiBlacklist.registerObserver();
+        mZygoteTypefaceRefresh.registerObserver();
 
         final long pssDeferralMs = DeviceConfig.getLong(DeviceConfig.NAMESPACE_ACTIVITY_MANAGER,
                 ACTIVITY_START_PSS_DEFER_CONFIG, 0L);
@@ -9517,6 +9568,7 @@ public class ActivityManagerService extends IActivityManager.Stub
             mWaitForNetworkTimeoutMs = waitForNetworkTimeoutMs;
             mPssDeferralTime = pssDeferralMs;
         }
+        mSwipeToScreenshotObserver.registerObserver();
     }
 
     /**
@@ -16205,6 +16257,9 @@ public class ActivityManagerService extends IActivityManager.Stub
                                         mServices.forceStopPackageLocked(ssp, userId);
                                         mAtmInternal.onPackageUninstalled(ssp);
                                         mBatteryStatsService.notePackageUninstalled(ssp);
+                                        if (mGamingModeController != null) {
+                                             mGamingModeController.notePackageUninstalled(ssp);
+                                        }
                                     }
                                 } else {
                                     if (killProcess) {
@@ -17725,7 +17780,9 @@ public class ActivityManagerService extends IActivityManager.Stub
                                 ApplicationExitInfo.REASON_EXCESSIVE_RESOURCE_USAGE,
                                 ApplicationExitInfo.SUBREASON_EXCESSIVE_CPU,
                                 true);
-                        app.baseProcessTracker.reportExcessiveCpu(app.pkgList.mPkgList);
+                        if (app.baseProcessTracker != null) {
+                            app.baseProcessTracker.reportExcessiveCpu(app.pkgList.mPkgList);
+                        }
                         for (int ipkg = app.pkgList.size() - 1; ipkg >= 0; ipkg--) {
                             ProcessStats.ProcessStateHolder holder = app.pkgList.valueAt(ipkg);
                             FrameworkStatsLog.write(FrameworkStatsLog.EXCESSIVE_CPU_USAGE_REPORTED,
@@ -17940,6 +17997,16 @@ public class ActivityManagerService extends IActivityManager.Stub
                 Binder.restoreCallingIdentity(identity);
             }
 
+            if (mCurResumedPackage != null && mGamingModeController != null && mGamingModeController.isGamingModeEnabled()) {
+                if (mGamingModeController.topAppChanged(mCurResumedPackage) && !mGamingModeController.isGamingModeActivated()) {
+                    Settings.System.putInt(mContext.getContentResolver(),
+                        Settings.System.GAMING_MODE_ACTIVE, 1);
+                } else if (!mGamingModeController.topAppChanged(mCurResumedPackage) && 
+                        mGamingModeController.isGamingModeActivated()) {
+                    Settings.System.putInt(mContext.getContentResolver(),
+                        Settings.System.GAMING_MODE_ACTIVE, 0);
+                }
+           }
         }
         return r;
     }
@@ -20418,6 +20485,39 @@ public class ActivityManagerService extends IActivityManager.Stub
             return mOomAdjuster.mCachedAppOptimizer.enableFreezer(enable);
         } else {
             throw new SecurityException("Caller uid " + callerUid + " cannot set freezer state ");
+    }
+    }
+
+   private class SwipeToScreenshotObserver extends ContentObserver {
+
+        private final Context mContext;
+
+        public SwipeToScreenshotObserver(Handler handler, Context context) {
+            super(handler);
+            mContext = context;
+        }
+
+        public void registerObserver() {
+            mContext.getContentResolver().registerContentObserver(
+                    Settings.System.getUriFor(Settings.System.THREE_FINGER_GESTURE),
+                    false, this, UserHandle.USER_ALL);
+            update();
+        }
+
+        private void update() {
+            mIsSwipeToScreenshotEnabled = Settings.System.getIntForUser(mContext.getContentResolver(),
+                    Settings.System.THREE_FINGER_GESTURE, 0, UserHandle.USER_CURRENT) == 1;
+        }
+
+        public void onChange(boolean selfChange) {
+            update();
+        }
+    }
+
+    @Override
+    public boolean isSwipeToScreenshotGestureActive() {
+        synchronized (this) {
+            return mIsSwipeToScreenshotEnabled && SystemProperties.getBoolean("sys.android.screenshot", false);
         }
     }
 }

@@ -51,7 +51,7 @@
     <color name="global_actions_alert_text">@color/GM2_red_700</color>
 
     <!-- The color of the background of the emergency button when home controls are visible -->
-    <color name="global_actions_emergency_background">@color/GM2_red_400</color>
+    <color name="global_actions_emergency_background">@color/GM2_red_700</color>
     <color name="global_actions_emergency_text">@color/GM2_grey_100</color>
 
     <!-- Tint color for the content on the notification overflow card. -->
@@ -113,8 +113,8 @@
     <color name="notification_alert_color">#FFF87B2B</color>
     <color name="notification_guts_priority_button_content_color">@color/GM2_grey_700</color>
     <color name="notification_guts_priority_button_bg_fill_color">@color/transparent</color>
-    <color name="notification_guts_priority_button_bg_fill_color_selected">#FFFFFF</color>
-    <color name="notification_guts_priority_button_bg_stroke_color">@color/GM2_grey_300</color>
+    <color name="notification_guts_priority_button_bg_fill_color_selected">#22000000</color>
+    <color name="notification_guts_priority_button_bg_stroke_color">#22000000</color>
 
     <color name="notification_section_header_label_color">@color/GM2_grey_900</color>
     <color name="notification_section_clear_all_btn_color">@color/GM2_grey_700</color>
@@ -183,14 +183,17 @@
     <!-- Biometric dialog colors -->
     <color name="biometric_dialog_dim_color">#80000000</color>              <!-- 50% black -->
     <color name="biometric_dialog_gray">#ff757575</color>
-    <color name="biometric_dialog_accent">#ff008577</color>                 <!-- dark teal -->
+    <color name="biometric_dialog_accent">@*android:color/accent_device_default_light</color>
     <color name="biometric_dialog_error">#ffd93025</color>                  <!-- red 600 -->
 
     <!-- Logout button -->
     <color name="logout_button_bg_color">#ccffffff</color>
 
     <!-- Color for the Assistant invocation lights -->
-    <color name="default_invocation_lights_color">#ffffffff</color>         <!-- white -->
+    <color name="edge_light_blue">#ff4185f4</color>
+    <color name="edge_light_green">#ff3aa853</color>
+    <color name="edge_light_red">#ffea4234</color>
+    <color name="edge_light_yellow">#fffbbc06</color>
 
     <!-- Global screenshot actions -->
     <color name="global_screenshot_button_background">#F5F5F5</color>
@@ -255,14 +258,15 @@
     <color name="control_primary_text">#E6FFFFFF</color>
     <color name="control_secondary_text">#99FFFFFF</color>
     <color name="control_default_foreground">@color/GM2_grey_500</color>
-    <color name="control_default_background">@color/GM2_grey_900</color>
+    <color name="control_default_background">#7f000000</color> <!-- 50% black -->
+    <color name="control_dialog_background">@color/GM2_grey_900</color>
     <color name="control_list_popup_background">@*android:color/background_floating_material_dark</color>
     <color name="control_spinner_dropdown">@*android:color/foreground_material_dark</color>
     <color name="control_more_vert">@*android:color/foreground_material_dark</color>
-    <color name="control_enabled_light_background">#413C2D</color>
-    <color name="control_enabled_thermo_heat_background">#41312E</color>
-    <color name="control_enabled_thermo_cool_background">#303744</color>
-    <color name="control_enabled_default_background">#3C3D40</color>
+    <color name="control_enabled_light_background">#66fde293</color> <!-- 40% GM2 yellow 200 -->
+    <color name="control_enabled_thermo_heat_background">#66f6aea9</color> <!-- 40% GM2 red 200 -->
+    <color name="control_enabled_thermo_cool_background">#66aecbfa</color> <!-- 40% GM2 blue 200 -->
+    <color name="control_enabled_default_background">#33ffffff</color>
     <color name="control_enabled_heat_foreground">#FF8B66</color>
     <color name="control_enabled_default_foreground">@color/GM2_blue_300</color>
     <color name="control_enabled_cool_foreground">@color/GM2_blue_300</color>
@@ -271,4 +275,15 @@
     <color name="misalignment_text_color">#F28B82</color>
 
     <color name="screenrecord_status_color">#E94235</color>
+
+    <color name="volume_background_tint">#f2f2f2</color>
+    <color name="divider_stroke_color">#E0E0E0</color>
+
+    <!-- qs tile background -->
+    <color name="qs_tile_background_color_disabled">#f2f2f2</color>
+
+    <!-- Clear all notifications button -->
+    <color name="dismiss_all_background_color">@*android:color/notification_material_background_color</color>
+    <color name="dismiss_all_background_color_ripple">#a8a8a8</color>
+    <color name="dismiss_all_icon_color">@*android:color/accent_device_default_light</color>
 </resources>

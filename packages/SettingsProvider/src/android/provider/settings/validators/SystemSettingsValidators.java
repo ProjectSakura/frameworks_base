@@ -16,6 +16,7 @@
 
 package android.provider.settings.validators;
 
+import static android.provider.settings.validators.SettingsValidators.ANY_INTEGER_VALIDATOR;
 import static android.provider.settings.validators.SettingsValidators.BOOLEAN_VALIDATOR;
 import static android.provider.settings.validators.SettingsValidators.COMPONENT_NAME_VALIDATOR;
 import static android.provider.settings.validators.SettingsValidators.DATE_FORMAT_VALIDATOR;
@@ -23,6 +24,7 @@ import static android.provider.settings.validators.SettingsValidators.LENIENT_IP
 import static android.provider.settings.validators.SettingsValidators.NON_NEGATIVE_INTEGER_VALIDATOR;
 import static android.provider.settings.validators.SettingsValidators.URI_VALIDATOR;
 import static android.provider.settings.validators.SettingsValidators.VIBRATION_INTENSITY_VALIDATOR;
+import static android.provider.settings.validators.SettingsValidators.ANY_INTEGER_VALIDATOR;
 
 import android.annotation.Nullable;
 import android.compat.annotation.UnsupportedAppUsage;
@@ -209,5 +211,29 @@ public class SystemSettingsValidators {
         VALIDATORS.put(System.SHOW_BATTERY_PERCENT, BOOLEAN_VALIDATOR);
         VALIDATORS.put(System.NOTIFICATION_LIGHT_PULSE, BOOLEAN_VALIDATOR);
         VALIDATORS.put(System.ACCELEROMETER_ROTATION_ANGLES, NON_NEGATIVE_INTEGER_VALIDATOR);
+        VALIDATORS.put(System.THEMING_SETTINGS_DASHBOARD_ICONS, ANY_INTEGER_VALIDATOR);
+        VALIDATORS.put(System.DOZE_ON_CHARGE, BOOLEAN_VALIDATOR);
+        VALIDATORS.put(System.NOTIFICATION_PULSE, BOOLEAN_VALIDATOR);
+        VALIDATORS.put(System.AOD_NOTIFICATION_PULSE, BOOLEAN_VALIDATOR);
+        VALIDATORS.put(System.NOTIFICATION_PULSE_COLOR_MODE, new InclusiveIntegerRangeValidator(0, 3));
+        VALIDATORS.put(System.NOTIFICATION_PULSE_COLOR, ANY_INTEGER_VALIDATOR);
+        VALIDATORS.put(System.NOTIFICATION_PULSE_REPEATS, ANY_INTEGER_VALIDATOR);
+        VALIDATORS.put(System.AOD_NOTIFICATION_PULSE_TIMEOUT, ANY_INTEGER_VALIDATOR);
+        VALIDATORS.put(System.NOTIFICATION_PULSE_DURATION, ANY_INTEGER_VALIDATOR);
+        VALIDATORS.put(
+                System.COLOR_BUCKET_OVERLAY,
+                new Validator() {
+                    @Override
+                    public boolean validate(String value) {
+                        if (value == null && value.isEmpty()) {
+                            return false;
+                        }
+                        return true;
+                    }
+                });
+        VALIDATORS.put(System.VIBRATE_ON_CONNECT, BOOLEAN_VALIDATOR);
+        VALIDATORS.put(System.VIBRATE_ON_CALLWAITING, BOOLEAN_VALIDATOR);
+        VALIDATORS.put(System.VIBRATE_ON_DISCONNECT, BOOLEAN_VALIDATOR);
+        VALIDATORS.put(System.QS_MEDIA_PLAYER, BOOLEAN_VALIDATOR);
     }
 }

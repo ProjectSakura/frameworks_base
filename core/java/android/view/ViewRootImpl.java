@@ -6017,6 +6017,11 @@ public final class ViewRootImpl implements ViewParent,
         private int processPointerEvent(QueuedInputEvent q) {
             final MotionEvent event = (MotionEvent)q.mEvent;
 
+            if (event.getPointerCount() == 3 && isSwipeToScreenshotGestureActive()) {
+                event.setAction(MotionEvent.ACTION_CANCEL);
+                Log.d("teste", "canceling motionEvent because of threeGesture detecting");
+            }
+
             mAttachInfo.mUnbufferedDispatchRequested = false;
             mAttachInfo.mHandlingPointerEvent = true;
             boolean handled = mView.dispatchPointerEvent(event);
@@ -6737,7 +6742,7 @@ public final class ViewRootImpl implements ViewParent,
         // probably not be set to anything less than about 4.
         // If fling accuracy is a problem then consider tuning the tick distance instead.
         private static final float MIN_FLING_VELOCITY_TICKS_PER_SECOND = 6f;
-        private static final float MAX_FLING_VELOCITY_TICKS_PER_SECOND = 20f;
+        private static final float MAX_FLING_VELOCITY_TICKS_PER_SECOND = 24f;
 
         // Fling velocity decay factor applied after each new key is emitted.
         // This parameter controls the deceleration and overall duration of the fling.
@@ -7695,6 +7700,14 @@ public final class ViewRootImpl implements ViewParent,
             mRemoved = true;
             if (mAdded) {
                 dispatchDetachedFromWindow();
+            } else {
+                Log.w(mTag, "add view failed and remove related objects");
+
+                mAccessibilityManager.removeAccessibilityStateChangeListener(
+                        mAccessibilityInteractionConnectionManager);
+                mAccessibilityManager.removeHighTextContrastStateChangeListener(
+                        mHighContrastTextManager);
+                mDisplayManager.unregisterDisplayListener(mDisplayListener);
             }
 
             if (mAdded && !mFirst) {
@@ -9863,5 +9876,14 @@ public final class ViewRootImpl implements ViewParent,
      */
     boolean isDrawingToBLASTTransaction() {
         return mNextReportConsumeBLAST;
+    }
+
+    private boolean isSwipeToScreenshotGestureActive() {
+        try {
+            return ActivityManager.getService().isSwipeToScreenshotGestureActive();
+        } catch (RemoteException e) {
+            Log.e("teste", "isSwipeToScreenshotGestureActive exception", e);
+            return false;
+        }
     }
 }

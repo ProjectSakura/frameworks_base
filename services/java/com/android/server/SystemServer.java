@@ -177,6 +177,7 @@ import com.android.server.utils.TimingsTraceAndSlog;
 import com.android.server.vr.VrManagerService;
 import com.android.server.webkit.WebViewUpdateService;
 import com.android.server.wm.ActivityTaskManagerService;
+import com.android.server.wm.AppLockService;
 import com.android.server.wm.WindowManagerGlobalLock;
 import com.android.server.wm.WindowManagerService;
 
@@ -317,6 +318,8 @@ public final class SystemServer {
             "com.android.server.rollback.RollbackManagerService";
 
     private static final String TETHERING_CONNECTOR_CLASS = "android.net.ITetheringConnector";
+    private static final String FONT_SERVICE_CLASS =
+            "com.android.server.FontService$Lifecycle";
 
     private static final String PERSISTENT_DATA_BLOCK_PROP = "ro.frp.pst";
 
@@ -547,7 +550,7 @@ public final class SystemServer {
             initZygoteChildHeapProfiling();
 
             // Debug builds - spawn a thread to monitor for fd leaks.
-            if (Build.IS_DEBUGGABLE) {
+            if (Build.IS_ENG) {
                 spawnFdLeakCheckThread();
             }
 
@@ -1130,6 +1133,11 @@ public final class SystemServer {
             SQLiteCompatibilityWalFlags.reset();
             t.traceEnd();
 
+            // Manages fonts
+            t.traceBegin("StartFontService");
+            mSystemServiceManager.startService(FONT_SERVICE_CLASS);
+            t.traceEnd();
+
             // Records errors and logs, for example wtf()
             // Currently this service indirectly depends on SettingsProvider so do this after
             // InstallSystemProviders.
@@ -1233,6 +1241,10 @@ public final class SystemServer {
 
             t.traceBegin("IorapForwardingService");
             mSystemServiceManager.startService(IorapForwardingService.class);
+            t.traceEnd();
+
+            t.traceBegin("StartAppLockService");
+            mSystemServiceManager.startService(AppLockService.class);
             t.traceEnd();
 
             t.traceBegin("SignedConfigService");

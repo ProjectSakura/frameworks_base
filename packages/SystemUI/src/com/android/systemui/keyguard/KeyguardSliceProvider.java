@@ -25,7 +25,9 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.database.ContentObserver;
 import android.graphics.Typeface;
+import android.graphics.drawable.Drawable;
 import android.graphics.drawable.Icon;
 import android.icu.text.DateFormat;
 import android.icu.text.DisplayContext;
@@ -34,10 +36,12 @@ import android.media.session.PlaybackState;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Trace;
+import android.os.UserHandle;
 import android.provider.Settings;
 import android.service.notification.ZenModeConfig;
 import android.text.TextUtils;
 import android.text.style.StyleSpan;
+import android.util.Log;
 
 import androidx.core.graphics.drawable.IconCompat;
 import androidx.slice.Slice;
@@ -47,6 +51,7 @@ import androidx.slice.builders.ListBuilder.RowBuilder;
 import androidx.slice.builders.SliceAction;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.internal.util.sakura.OmniJawsClient;
 import com.android.keyguard.KeyguardUpdateMonitor;
 import com.android.keyguard.KeyguardUpdateMonitorCallback;
 import com.android.systemui.Dependency;
@@ -76,7 +81,10 @@ import javax.inject.Inject;
 public class KeyguardSliceProvider extends SliceProvider implements
         NextAlarmController.NextAlarmChangeCallback, ZenModeController.Callback,
         NotificationMediaManager.MediaListener, StatusBarStateController.StateListener,
-        SystemUIAppComponentFactory.ContextInitializer {
+        SystemUIAppComponentFactory.ContextInitializer, OmniJawsClient.OmniJawsObserver {
+
+    private String TAG = KeyguardSliceProvider.class.getSimpleName();
+    private static final boolean DEBUG = false;
 
     private static final StyleSpan BOLD_STYLE = new StyleSpan(Typeface.BOLD);
     public static final String KEYGUARD_SLICE_URI = "content://com.android.systemui.keyguard/main";
@@ -90,6 +98,8 @@ public class KeyguardSliceProvider extends SliceProvider implements
             "content://com.android.systemui.keyguard/media";
     public static final String KEYGUARD_ACTION_URI =
             "content://com.android.systemui.keyguard/action";
+    public static final String KEYGUARD_WEATHER_URI =
+            "content://com.android.systemui.keyguard/weather";
 
     /**
      * Only show alarms that will ring within N hours.
@@ -106,6 +116,7 @@ public class KeyguardSliceProvider extends SliceProvider implements
     protected final Uri mAlarmUri;
     protected final Uri mDndUri;
     protected final Uri mMediaUri;
+    protected final Uri mWeatherUri;
     private final Date mCurrentTime = new Date();
     private final Handler mHandler;
     private final Handler mMediaHandler;
@@ -140,7 +151,15 @@ public class KeyguardSliceProvider extends SliceProvider implements
     protected boolean mDozing;
     private int mStatusBarState;
     private boolean mMediaIsVisible;
+    private boolean mPulseOnNewTracks;
+    private static final String PULSE_ACTION = "com.android.systemui.doze.pulse";
     private SystemUIAppComponentFactory.ContextAvailableCallback mContextAvailableCallback;
+
+    private OmniJawsClient mWeatherClient;
+    private OmniJawsClient.WeatherInfo mWeatherInfo;
+    private OmniJawsClient.PackageInfo mPackageInfo;
+    private boolean mWeatherEnabled;
+    private boolean mShowWeatherSlice;
 
     /**
      * Receiver responsible for time ticking and updating the date format.
@@ -193,6 +212,7 @@ public class KeyguardSliceProvider extends SliceProvider implements
         mAlarmUri = Uri.parse(KEYGUARD_NEXT_ALARM_URI);
         mDndUri = Uri.parse(KEYGUARD_DND_URI);
         mMediaUri = Uri.parse(KEYGUARD_MEDIA_URI);
+        mWeatherUri = Uri.parse(KEYGUARD_WEATHER_URI);
     }
 
     @AnyThread
@@ -210,6 +230,7 @@ public class KeyguardSliceProvider extends SliceProvider implements
             addNextAlarmLocked(builder);
             addZenModeLocked(builder);
             addPrimaryActionLocked(builder);
+            addWeather(builder);
             slice = builder.build();
         }
         Trace.endSection();
@@ -219,11 +240,19 @@ public class KeyguardSliceProvider extends SliceProvider implements
     protected boolean needsMediaLocked() {
         boolean keepWhenAwake = mKeyguardBypassController != null
                 && mKeyguardBypassController.getBypassEnabled() && mDozeParameters.getAlwaysOn();
+        boolean isCenterMusicTickerEnabled = Settings.System.getIntForUser(getContext().getContentResolver(),
+                Settings.System.AMBIENT_MUSIC_TICKER, 1, UserHandle.USER_CURRENT) == 2;
+        String currentClock = Settings.Secure.getString(
+                mContentResolver, Settings.Secure.LOCK_SCREEN_CUSTOM_CLOCK_FACE);
+        boolean isTypeClockSelected = currentClock == null ? false : currentClock.contains("Type");
+        boolean isTwelveClockSelected = currentClock == null ? false : currentClock.contains("Twelve");
+        boolean isAndroidSClockSelected = currentClock == null ? false : currentClock.contains("Android") && currentClock.contains("S");
         // Show header if music is playing and the status bar is in the shade state. This way, an
         // animation isn't necessary when pressing power and transitioning to AOD.
         boolean keepWhenShade = mStatusBarState == StatusBarState.SHADE && mMediaIsVisible;
-        return !TextUtils.isEmpty(mMediaTitle) && mMediaIsVisible && (mDozing || keepWhenAwake
-                || keepWhenShade);
+        return !TextUtils.isEmpty(mMediaTitle) && (mMediaIsVisible || isAndroidSClockSelected || isTwelveClockSelected) && (mDozing || keepWhenAwake
+                || keepWhenShade || isAndroidSClockSelected || isTwelveClockSelected) &&
+                (isCenterMusicTickerEnabled || isAndroidSClockSelected || isTwelveClockSelected) && !isTypeClockSelected;
     }
 
     protected void addMediaLocked(ListBuilder listBuilder) {
@@ -276,16 +305,38 @@ public class KeyguardSliceProvider extends SliceProvider implements
      * @param builder The slice builder.
      */
     protected void addZenModeLocked(ListBuilder builder) {
+        String currentClock = Settings.Secure.getString(
+                mContentResolver, Settings.Secure.LOCK_SCREEN_CUSTOM_CLOCK_FACE);
+        boolean isTwelveClockSelected = currentClock == null ? false : currentClock.contains("Twelve");
         if (!isDndOn()) {
             return;
         }
-        RowBuilder dndBuilder = new RowBuilder(mDndUri)
-                .setContentDescription(getContext().getResources()
-                        .getString(R.string.accessibility_quick_settings_dnd))
-                .addEndItem(
-                    IconCompat.createWithResource(getContext(), R.drawable.stat_sys_dnd),
-                    ListBuilder.ICON_IMAGE);
-        builder.addRow(dndBuilder);
+
+        IconCompat noOOS12 = IconCompat.createWithResource(getContext(), com.android.internal.R.drawable.ic_qs_dnd);
+        IconCompat OOS12 = IconCompat.createWithResource(getContext(), R.drawable.ic_no_disturb_twelve);
+        String dndString = getContext().getResources().getString(R.string.accessibility_quick_settings_dnd);
+        String dndStringTitle = getContext().getResources().getString(R.string.quick_settings_dnd_label);
+
+        if (isTwelveClockSelected) {
+            if (!com.android.internal.util.sakura.Utils.isThemeEnabled("com.android.theme.icon_pack.oos.systemui")) {
+                RowBuilder dndBuilder = new RowBuilder(mDndUri)
+                        .setTitle(dndStringTitle)
+                        .setContentDescription(dndString)
+                        .addEndItem(noOOS12, ListBuilder.ICON_IMAGE);
+                builder.addRow(dndBuilder);
+            } else {
+                RowBuilder dndBuilder = new RowBuilder(mDndUri)
+                        .setTitle(dndStringTitle)
+                        .setContentDescription(dndString)
+                        .addEndItem(OOS12, ListBuilder.ICON_IMAGE);
+                builder.addRow(dndBuilder);
+            }
+        } else {
+            RowBuilder dndBuilder = new RowBuilder(mDndUri)
+                    .setContentDescription(dndString)
+                    .addEndItem(IconCompat.createWithResource(getContext(), R.drawable.stat_sys_dnd), ListBuilder.ICON_IMAGE);
+            builder.addRow(dndBuilder);
+        }
     }
 
     /**
@@ -293,6 +344,90 @@ public class KeyguardSliceProvider extends SliceProvider implements
      */
     protected boolean isDndOn() {
         return mZenModeController.getZen() != Settings.Global.ZEN_MODE_OFF;
+    }
+
+    protected void addWeather(ListBuilder builder) {
+        if (!mWeatherEnabled || !mShowWeatherSlice || !mWeatherClient.isOmniJawsEnabled() ||
+                mWeatherInfo == null || mPackageInfo == null) {
+            return;
+        }
+        String temperatureText = mWeatherInfo.temp + " " + mWeatherInfo.tempUnits;
+        Icon conditionIcon = Icon.createWithResource(mPackageInfo.packageName, mPackageInfo.resourceID);
+        RowBuilder weatherRowBuilder = new RowBuilder(mWeatherUri)
+                .setTitle(temperatureText)
+                .addEndItem(IconCompat.createFromIcon(conditionIcon), ListBuilder.ICON_IMAGE);
+        builder.addRow(weatherRowBuilder);
+    }
+
+    @Override
+    public void weatherUpdated() {
+        queryAndUpdateWeather();
+        mContentResolver.notifyChange(mSliceUri, null /* observer */);
+    }
+
+    @Override
+    public void weatherError(int errorReason) {
+        if (DEBUG) Log.d(TAG, "weatherError " + errorReason);
+    }
+
+    @Override
+    public void updateSettings() {
+        queryAndUpdateWeather();
+        mContentResolver.notifyChange(mSliceUri, null /* observer */);
+    }
+
+    private void queryAndUpdateWeather() {
+        if (!mWeatherEnabled) return;
+        try {
+            if (DEBUG) Log.d(TAG, "queryAndUpdateWeather.isOmniJawsEnabled " + mWeatherClient.isOmniJawsEnabled());
+            mWeatherClient.queryWeather();
+            mWeatherInfo = mWeatherClient.getWeatherInfo();
+            if (mWeatherInfo != null) {
+                  Drawable conditionImage = mWeatherClient.getWeatherConditionImage(mWeatherInfo.conditionCode);
+                  mPackageInfo = mWeatherClient.getPackageInfo();
+            } else {
+                  mPackageInfo = null;
+            }
+            if (DEBUG) {
+                Log.w(TAG, "queryAndUpdateWeather mPackageName: " + mPackageInfo.packageName);
+                Log.w(TAG, "queryAndUpdateWeather mDrawableResID: " + mPackageInfo.resourceID);
+            }
+        } catch(Exception e) {
+            // Do nothing
+        }
+    }
+
+    private WeatherSettingsObserver mWeatherSettingsObserver;
+
+    private class WeatherSettingsObserver extends ContentObserver {
+        WeatherSettingsObserver(Handler handler) {
+            super(handler);
+        }
+
+        void observe() {
+            mContentResolver.registerContentObserver(Settings.System.getUriFor(
+                    Settings.System.LOCKSCREEN_WEATHER_ENABLED),
+                    false, this, UserHandle.USER_ALL);
+
+            mContentResolver.registerContentObserver(Settings.System.getUriFor(
+                    Settings.System.LOCKSCREEN_WEATHER_STYLE),
+                    false, this, UserHandle.USER_ALL);
+        }
+
+        @Override
+        public void onChange(boolean selfChange, Uri uri) {
+            super.onChange(selfChange, uri);
+            if (uri.equals(Settings.System.getUriFor(Settings.System.LOCKSCREEN_WEATHER_ENABLED))) {
+                mWeatherEnabled = Settings.System.getIntForUser(mContentResolver,
+                    Settings.System.LOCKSCREEN_WEATHER_ENABLED, 0, UserHandle.USER_CURRENT) != 0;
+                queryAndUpdateWeather();
+                mContentResolver.notifyChange(mSliceUri, null /* observer */);
+            } else if (uri.equals(Settings.System.getUriFor(Settings.System.LOCKSCREEN_WEATHER_STYLE))) {
+                mShowWeatherSlice = Settings.System.getIntForUser(mContentResolver,
+                    Settings.System.LOCKSCREEN_WEATHER_STYLE, 1, UserHandle.USER_CURRENT) != 0;
+                mContentResolver.notifyChange(mSliceUri, null /* observer */);
+            }
+        }
     }
 
     @Override
@@ -311,6 +446,14 @@ public class KeyguardSliceProvider extends SliceProvider implements
             mStatusBarStateController.addCallback(this);
             mNextAlarmController.addCallback(this);
             mZenModeController.addCallback(this);
+            mWeatherClient = new OmniJawsClient(getContext());
+            mWeatherEnabled = Settings.System.getIntForUser(mContentResolver, Settings.System.LOCKSCREEN_WEATHER_ENABLED, 0, UserHandle.USER_CURRENT) != 0;
+            mShowWeatherSlice = Settings.System.getIntForUser(mContentResolver, Settings.System.LOCKSCREEN_WEATHER_STYLE, 1, UserHandle.USER_CURRENT) != 0;
+            mWeatherClient.addSettingsObserver();
+            mWeatherClient.addObserver(this);
+            mWeatherSettingsObserver = new WeatherSettingsObserver(mHandler);
+            mWeatherSettingsObserver.observe();
+            queryAndUpdateWeather();
             KeyguardSliceProvider.sInstance = this;
             registerClockUpdate();
             updateClockLocked();
@@ -454,7 +597,7 @@ public class KeyguardSliceProvider extends SliceProvider implements
     public void onPrimaryMetadataOrStateChanged(MediaMetadata metadata,
             @PlaybackState.State int state) {
         synchronized (this) {
-            boolean nextVisible = NotificationMediaManager.isPlayingState(state);
+            boolean nextVisible = NotificationMediaManager.isPlayingState(state) || mMediaManager.getNowPlayingTrack() != null;
             mMediaHandler.removeCallbacksAndMessages(null);
             if (mMediaIsVisible && !nextVisible && mStatusBarState != StatusBarState.SHADE) {
                 // We need to delay this event for a few millis when stopping to avoid jank in the
@@ -475,7 +618,15 @@ public class KeyguardSliceProvider extends SliceProvider implements
     }
 
     private void updateMediaStateLocked(MediaMetadata metadata, @PlaybackState.State int state) {
+        String currentClock = Settings.Secure.getString(
+                mContentResolver, Settings.Secure.LOCK_SCREEN_CUSTOM_CLOCK_FACE);
+        boolean isTwelveClockSelected = currentClock == null ? false : currentClock.contains("Twelve");
         boolean nextVisible = NotificationMediaManager.isPlayingState(state);
+        // Get track info from Now Playing notification, if available, and only if there's no playing media notification
+        CharSequence npTitle = mMediaManager.getNowPlayingTrack();
+        boolean nowPlayingAvailable = !nextVisible && npTitle != null;
+
+        // Get track info from player media notification, if available
         CharSequence title = null;
         if (metadata != null) {
             title = metadata.getText(MediaMetadata.METADATA_KEY_TITLE);
@@ -486,14 +637,39 @@ public class KeyguardSliceProvider extends SliceProvider implements
         CharSequence artist = metadata == null ? null : metadata.getText(
                 MediaMetadata.METADATA_KEY_ARTIST);
 
+        // If Now playing is available, and there's no playing media notification, get Now Playing title
+        title = nowPlayingAvailable ? npTitle : title;
+
         if (nextVisible == mMediaIsVisible && TextUtils.equals(title, mMediaTitle)
                 && TextUtils.equals(artist, mMediaArtist)) {
             return;
         }
-        mMediaTitle = title;
-        mMediaArtist = artist;
-        mMediaIsVisible = nextVisible;
+        if (nowPlayingAvailable == mMediaIsVisible && TextUtils.equals(title, mMediaTitle)) {
+            return;
+        }
+
+        // Set new track info from playing media notification
+        if (isTwelveClockSelected && title != null) {
+            StringBuffer evenSB = new StringBuffer(" ");
+            evenSB.append(title);
+            mMediaTitle = evenSB;
+        } else {
+            mMediaTitle = title;
+        }
+        mMediaArtist = nowPlayingAvailable ? null : artist;
+        mMediaIsVisible = nextVisible || nowPlayingAvailable;
+
         notifyChange();
+        // if AoD is disabled, the device is not already dozing and we get a new track, trigger an ambient pulse event
+        if (mPulseOnNewTracks && mMediaIsVisible
+                && !mDozeParameters.getAlwaysOn() && mDozing) {
+            getContext().sendBroadcastAsUser(new Intent(PULSE_ACTION),
+                    new UserHandle(UserHandle.USER_CURRENT));
+        }
+    }
+
+    public void setPulseOnNewTracks(boolean enabled) {
+        mPulseOnNewTracks = enabled;
     }
 
     protected void notifyChange() {

@@ -21,6 +21,8 @@ import android.animation.AnimatorListenerAdapter;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.os.Bundle;
+import android.os.UserHandle;
+import android.provider.Settings;
 import android.util.AttributeSet;
 import android.util.TypedValue;
 import android.view.ContextThemeWrapper;
@@ -39,6 +41,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.android.internal.logging.UiEventLogger;
 import com.android.internal.logging.UiEventLoggerImpl;
+import com.android.systemui.Dependency;
 import com.android.systemui.R;
 import com.android.systemui.keyguard.ScreenLifecycle;
 import com.android.systemui.plugins.qs.QS;
@@ -50,6 +53,7 @@ import com.android.systemui.statusbar.phone.LightBarController;
 import com.android.systemui.statusbar.phone.NotificationsQuickSettingsContainer;
 import com.android.systemui.statusbar.policy.KeyguardStateController;
 import com.android.systemui.statusbar.policy.KeyguardStateController.Callback;
+import com.android.systemui.tuner.TunerService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -62,11 +66,14 @@ import javax.inject.Inject;
  * This adds itself to the status bar window, so it can appear on top of quick settings and
  * *someday* do fancy animations to get into/out of it.
  */
-public class QSCustomizer extends LinearLayout implements OnMenuItemClickListener {
+public class QSCustomizer extends LinearLayout implements OnMenuItemClickListener, TunerService.Tunable {
 
     private static final int MENU_RESET = Menu.FIRST;
     private static final String EXTRA_QS_CUSTOMIZING = "qs_customizing";
     private static final String TAG = "QSCustomizer";
+
+    public static final String STATUS_BAR_CUSTOM_HEADER =
+            "system:" + Settings.System.STATUS_BAR_CUSTOM_HEADER;
 
     private final QSDetailClipper mClipper;
     private final LightBarController mLightBarController;
@@ -87,6 +94,8 @@ public class QSCustomizer extends LinearLayout implements OnMenuItemClickListene
     private int mY;
     private boolean mOpening;
     private boolean mIsShowingNavBackdrop;
+    private boolean mHeaderImageEnabled;
+
     private UiEventLogger mUiEventLogger = new UiEventLoggerImpl();
 
     @Inject
@@ -139,19 +148,38 @@ public class QSCustomizer extends LinearLayout implements OnMenuItemClickListene
         mKeyguardStateController = keyguardStateController;
         mScreenLifecycle = screenLifecycle;
         updateNavBackDrop(getResources().getConfiguration());
+
+        Dependency.get(TunerService.class).addTunable(this,
+                STATUS_BAR_CUSTOM_HEADER);
+    }
+
+    @Override
+    public void onTuningChanged(String key, String newValue) {
+        switch (key) {
+            case STATUS_BAR_CUSTOM_HEADER:
+                mHeaderImageEnabled =
+                        TunerService.parseIntegerSwitch(newValue, false);
+                updateResources();
+                break;
+            default:
+                break;
+        }
     }
 
     @Override
     protected void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
         updateNavBackDrop(newConfig);
-        updateResources();
     }
 
     private void updateResources() {
         LayoutParams lp = (LayoutParams) mTransparentView.getLayoutParams();
         lp.height = mContext.getResources().getDimensionPixelSize(
                 com.android.internal.R.dimen.quick_qs_offset_height);
+        if (mHeaderImageEnabled) {
+            lp.height += mContext.getResources().getDimensionPixelSize(
+                    R.dimen.qs_header_image_offset);
+        }
         mTransparentView.setLayoutParams(lp);
     }
 
@@ -163,6 +191,7 @@ public class QSCustomizer extends LinearLayout implements OnMenuItemClickListene
             navBackdrop.setVisibility(mIsShowingNavBackdrop ? View.VISIBLE : View.GONE);
         }
         updateNavColors();
+        updateResources();
     }
 
     private void updateNavColors() {

@@ -16,6 +16,7 @@
 
 package com.android.systemui.statusbar.phone;
 
+import android.content.Context;
 import android.content.res.Resources;
 import android.hardware.display.AmbientDisplayConfiguration;
 import android.os.PowerManager;
@@ -39,7 +40,7 @@ import javax.inject.Singleton;
  * Retrieve doze information
  */
 @Singleton
-public class DozeParameters implements TunerService.Tunable,
+public class DozeParameters implements
         com.android.systemui.plugins.statusbar.DozeParameters {
     private static final int MAX_DURATION = 60 * 1000;
     public static final boolean FORCE_NO_BLANKING =
@@ -47,13 +48,14 @@ public class DozeParameters implements TunerService.Tunable,
     public static final boolean FORCE_BLANKING =
             SystemProperties.getBoolean("debug.force_blanking", false);
 
+    private static DozeParameters sInstance;
+
     private final AmbientDisplayConfiguration mAmbientDisplayConfiguration;
     private final PowerManager mPowerManager;
 
     private final AlwaysOnDisplayPolicy mAlwaysOnPolicy;
     private final Resources mResources;
 
-    private boolean mDozeAlwaysOn;
     private boolean mControlScreenOffAnimation;
 
     @Inject
@@ -61,8 +63,7 @@ public class DozeParameters implements TunerService.Tunable,
             @Main Resources resources,
             AmbientDisplayConfiguration ambientDisplayConfiguration,
             AlwaysOnDisplayPolicy alwaysOnDisplayPolicy,
-            PowerManager powerManager,
-            TunerService tunerService) {
+            PowerManager powerManager) {
         mResources = resources;
         mAmbientDisplayConfiguration = ambientDisplayConfiguration;
         mAlwaysOnPolicy = alwaysOnDisplayPolicy;
@@ -70,11 +71,7 @@ public class DozeParameters implements TunerService.Tunable,
         mControlScreenOffAnimation = !getDisplayNeedsBlanking();
         mPowerManager = powerManager;
         mPowerManager.setDozeAfterScreenOff(!mControlScreenOffAnimation);
-
-        tunerService.addTunable(
-                this,
-                Settings.Secure.DOZE_ALWAYS_ON,
-                Settings.Secure.ACCESSIBILITY_DISPLAY_INVERSION_ENABLED);
+        sInstance = this;
     }
 
     public void dump(PrintWriter pw) {
@@ -89,6 +86,10 @@ public class DozeParameters implements TunerService.Tunable,
         pw.print("    getVibrateOnPickup(): "); pw.println(getVibrateOnPickup());
         pw.print("    getProxCheckBeforePulse(): "); pw.println(getProxCheckBeforePulse());
         pw.print("    getPickupVibrationThreshold(): "); pw.println(getPickupVibrationThreshold());
+    }
+
+    public static DozeParameters getInstance(Context context) {
+        return sInstance;
     }
 
     public boolean getDisplayStateSupported() {
@@ -164,7 +165,18 @@ public class DozeParameters implements TunerService.Tunable,
      * @return {@code true} if enabled and available.
      */
     public boolean getAlwaysOn() {
-        return mDozeAlwaysOn;
+        return mAmbientDisplayConfiguration.alwaysOnEnabled(UserHandle.USER_CURRENT) ? true : false;
+    }
+
+    /**
+     * Checks if always on is available and enabled for the current user
+     * without notification pulse - used to check what to do if aod notification pulse stops
+     * @return {@code true} if enabled and available.
+     * @hide
+     */
+    public boolean getAlwaysOnAfterAmbientLight() {
+        return mAmbientDisplayConfiguration.alwaysOnEnabledSetting(UserHandle.USER_CURRENT) ||
+                mAmbientDisplayConfiguration.alwaysOnChargingEnabled(UserHandle.USER_CURRENT);
     }
 
     /**
@@ -207,12 +219,8 @@ public class DozeParameters implements TunerService.Tunable,
         return mResources.getBoolean(R.bool.doze_double_tap_reports_touch_coordinates);
     }
 
-    @Override
-    public void onTuningChanged(String key, String newValue) {
-        mDozeAlwaysOn = mAmbientDisplayConfiguration.alwaysOnEnabled(UserHandle.USER_CURRENT);
-    }
-
     public AlwaysOnDisplayPolicy getPolicy() {
         return mAlwaysOnPolicy;
     }
+
 }

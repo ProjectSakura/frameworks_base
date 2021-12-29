@@ -42,6 +42,7 @@ import android.os.UserHandle;
 import android.provider.DeviceConfig;
 import android.provider.DeviceConfig.Properties;
 import android.service.notification.NotificationListenerService;
+import android.text.TextUtils;
 import android.util.ArraySet;
 import android.util.Log;
 import android.view.View;
@@ -63,7 +64,6 @@ import com.android.systemui.statusbar.notification.NotificationEntryManager;
 import com.android.systemui.statusbar.notification.collection.NotificationEntry;
 import com.android.systemui.statusbar.notification.collection.notifcollection.NotifCollectionListener;
 import com.android.systemui.statusbar.phone.BiometricUnlockController;
-import com.android.systemui.statusbar.phone.KeyguardBypassController;
 import com.android.systemui.statusbar.phone.LockscreenWallpaper;
 import com.android.systemui.statusbar.phone.NotificationShadeWindowController;
 import com.android.systemui.statusbar.phone.ScrimController;
@@ -100,12 +100,14 @@ public class NotificationMediaManager implements Dumpable, TunerService.Tunable 
     private static final String LOCKSCREEN_MEDIA_METADATA =
             "lineagesecure:" + LineageSettings.Secure.LOCKSCREEN_MEDIA_METADATA;
 
+    //private static final String NOWPLAYING_SERVICE = "com.google.intelligence.sense";
+    private static final String NOWPLAYING_SERVICE = "com.google.android.as";
+
     private final StatusBarStateController mStatusBarStateController
             = Dependency.get(StatusBarStateController.class);
     private final SysuiColorExtractor mColorExtractor = Dependency.get(SysuiColorExtractor.class);
     private final KeyguardStateController mKeyguardStateController = Dependency.get(
             KeyguardStateController.class);
-    private final KeyguardBypassController mKeyguardBypassController;
     private static final HashSet<Integer> PAUSED_MEDIA_STATES = new HashSet<>();
     static {
         PAUSED_MEDIA_STATES.add(PlaybackState.STATE_NONE);
@@ -142,6 +144,9 @@ public class NotificationMediaManager implements Dumpable, TunerService.Tunable 
     private MediaController mMediaController;
     private String mMediaNotificationKey;
     private MediaMetadata mMediaMetadata;
+
+    private String mNowPlayingNotificationKey;
+    private String mNowPlayingTrack;
 
     private BackDropView mBackdrop;
     private ImageView mBackdropFront;
@@ -204,13 +209,11 @@ public class NotificationMediaManager implements Dumpable, TunerService.Tunable 
             Lazy<NotificationShadeWindowController> notificationShadeWindowController,
             NotificationEntryManager notificationEntryManager,
             MediaArtworkProcessor mediaArtworkProcessor,
-            KeyguardBypassController keyguardBypassController,
             @Main DelayableExecutor mainExecutor,
             DeviceConfigProxy deviceConfig,
             MediaDataManager mediaDataManager) {
         mContext = context;
         mMediaArtworkProcessor = mediaArtworkProcessor;
-        mKeyguardBypassController = keyguardBypassController;
         mMediaListeners = new ArrayList<>();
         // TODO: use MediaSessionManager.SessionListener to hook us up to future updates
         // in session state
@@ -328,6 +331,10 @@ public class NotificationMediaManager implements Dumpable, TunerService.Tunable 
             clearCurrentMediaNotification();
             dispatchUpdateMediaMetaData(true /* changed */, true /* allowEnterAnimation */);
         }
+        if (key.equals(mNowPlayingNotificationKey)) {
+            mNowPlayingNotificationKey = null;
+            dispatchUpdateMediaMetaData(true /* changed */, true /* allowEnterAnimation */);
+        }
     }
 
     public String getMediaNotificationKey() {
@@ -376,6 +383,20 @@ public class NotificationMediaManager implements Dumpable, TunerService.Tunable 
             // Promote the media notification with a controller in 'playing' state, if any.
             NotificationEntry mediaNotification = null;
             MediaController controller = null;
+
+            for (NotificationEntry entry : allNotifications) {
+                if (entry.getSbn().getPackageName().toLowerCase().equals(NOWPLAYING_SERVICE)) {
+                    mNowPlayingNotificationKey = entry.getSbn().getKey();
+                    String notificationText = null;
+                    final String title = entry.getSbn().getNotification()
+                            .extras.getString(Notification.EXTRA_TITLE);
+                    if (!TextUtils.isEmpty(title)) {
+                        mNowPlayingTrack = title;
+                    }
+                    break;
+                }
+            }
+
             for (NotificationEntry entry : allNotifications) {
                 if (entry.isMediaNotification()) {
                     final MediaSession.Token token =
@@ -456,6 +477,13 @@ public class NotificationMediaManager implements Dumpable, TunerService.Tunable 
         }
 
         dispatchUpdateMediaMetaData(metaDataChanged, true /* allowEnterAnimation */);
+    }
+
+    public String getNowPlayingTrack() {
+        if (mNowPlayingNotificationKey == null) {
+            mNowPlayingTrack = null;
+        }
+        return mNowPlayingTrack;
     }
 
     public void clearCurrentMediaNotification() {
@@ -566,7 +594,7 @@ public class NotificationMediaManager implements Dumpable, TunerService.Tunable 
         }
 
         Bitmap artworkBitmap = null;
-        if (mediaMetadata != null && !mKeyguardBypassController.getBypassEnabled()) {
+        if (mediaMetadata != null) {
             artworkBitmap = mediaMetadata.getBitmap(MediaMetadata.METADATA_KEY_ART);
             if (artworkBitmap == null) {
                 artworkBitmap = mediaMetadata.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART);

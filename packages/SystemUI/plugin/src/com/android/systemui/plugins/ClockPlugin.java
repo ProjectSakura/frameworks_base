@@ -15,7 +15,10 @@ package com.android.systemui.plugins;
 
 import android.graphics.Bitmap;
 import android.graphics.Paint.Style;
+import android.graphics.Typeface;
 import android.view.View;
+
+import androidx.slice.Slice;
 
 import com.android.systemui.plugins.annotations.ProvidesInterface;
 
@@ -63,6 +66,10 @@ public interface ClockPlugin extends Plugin {
      * @return clock view from plugin.
      */
     View getView();
+
+    default void setHasVisibleNotifications(boolean hasVisibleNotifications){};
+
+    default void setSlice(Slice slice){};
 
     /**
      * Get clock view for a large clock that appears behind NSSL.
@@ -133,4 +140,9 @@ public interface ClockPlugin extends Plugin {
     default boolean shouldShowStatusArea() {
         return true;
     }
+
+    /**
+     * Allows Setting the Clock Typeface
+     */
+    default void setTypeface(Typeface tf) {}
 }

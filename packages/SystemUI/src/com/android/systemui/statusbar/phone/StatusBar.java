@@ -66,6 +66,7 @@ import android.app.admin.DevicePolicyManager;
 import android.content.BroadcastReceiver;
 import android.content.ComponentCallbacks2;
 import android.content.ComponentName;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -73,9 +74,11 @@ import android.content.pm.IPackageManager;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.res.Configuration;
+import android.database.ContentObserver;
 import android.graphics.Point;
 import android.graphics.PointF;
 import android.hardware.display.DisplayManager;
+import android.graphics.drawable.GradientDrawable;
 import android.hardware.fingerprint.IFingerprintService;
 import android.media.AudioAttributes;
 import android.metrics.LogMaker;
@@ -121,6 +124,9 @@ import android.view.WindowManager;
 import android.view.WindowManagerGlobal;
 import android.view.accessibility.AccessibilityManager;
 import android.widget.DateTimeView;
+import android.widget.FrameLayout;
+import android.widget.ImageButton;
+import android.widget.ImageView;
 
 import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.LifecycleOwner;
@@ -135,6 +141,7 @@ import com.android.internal.logging.UiEventLoggerImpl;
 import com.android.internal.logging.nano.MetricsProto.MetricsEvent;
 import com.android.internal.statusbar.IStatusBarService;
 import com.android.internal.statusbar.RegisterStatusBarResult;
+import com.android.internal.util.sakura.Utils;
 import com.android.internal.view.AppearanceRegion;
 import com.android.keyguard.KeyguardUpdateMonitor;
 import com.android.keyguard.KeyguardUpdateMonitorCallback;
@@ -150,6 +157,7 @@ import com.android.systemui.Prefs;
 import com.android.systemui.R;
 import com.android.systemui.SystemUI;
 import com.android.systemui.SystemUIFactory;
+import com.android.systemui.ambientmusic.AmbientIndicationContainer;
 import com.android.systemui.assist.AssistManager;
 import com.android.systemui.biometrics.FODCircleViewImpl;
 import com.android.systemui.biometrics.FODCircleViewImplCallback;
@@ -162,6 +170,7 @@ import com.android.systemui.dagger.qualifiers.UiBackground;
 import com.android.systemui.fragments.ExtensionFragmentListener;
 import com.android.systemui.fragments.FragmentHostManager;
 import com.android.systemui.keyguard.DismissCallbackRegistry;
+import com.android.systemui.keyguard.KeyguardSliceProvider;
 import com.android.systemui.keyguard.KeyguardViewMediator;
 import com.android.systemui.keyguard.ScreenLifecycle;
 import com.android.systemui.keyguard.WakefulnessLifecycle;
@@ -175,6 +184,7 @@ import com.android.systemui.plugins.qs.QS;
 import com.android.systemui.plugins.statusbar.NotificationSwipeActionHelper.SnoozeOption;
 import com.android.systemui.plugins.statusbar.StatusBarStateController;
 import com.android.systemui.qs.QSFragment;
+import com.android.systemui.qs.QuickStatusBarHeader;
 import com.android.systemui.qs.QSPanel;
 import com.android.systemui.recents.Recents;
 import com.android.systemui.recents.ScreenPinningRequest;
@@ -277,6 +287,23 @@ public class StatusBar extends SystemUI implements DemoMode,
             "system:" + Settings.System.SCREEN_BRIGHTNESS_MODE;
     private static final String STATUS_BAR_BRIGHTNESS_CONTROL =
             "lineagesystem:" + LineageSettings.System.STATUS_BAR_BRIGHTNESS_CONTROL;
+
+    private static final String QS_ROWS_PORTRAIT =
+            "system:" + Settings.System.QS_ROWS_PORTRAIT;
+    private static final String QS_ROWS_LANDSCAPE =
+            "system:" + Settings.System.QS_ROWS_LANDSCAPE;
+    private static final String QS_COLUMNS_PORTRAIT =
+            "system:" + Settings.System.QS_COLUMNS_PORTRAIT;
+    private static final String QS_COLUMNS_LANDSCAPE =
+            "system:" + Settings.System.QS_COLUMNS_LANDSCAPE;
+    private static final String QS_TILE_TITLE_VISIBILITY =
+            "system:" + Settings.System.QS_TILE_TITLE_VISIBILITY;
+    private static final String GAMING_MODE_ACTIVE =
+            "system:" + Settings.System.GAMING_MODE_ACTIVE;
+    private static final String GAMING_MODE_HEADSUP_TOGGLE =
+            "system:" + Settings.System.GAMING_MODE_HEADSUP_TOGGLE;
+    private static final String NOTIFICATION_MATERIAL_DISMISS =
+            "system:" + Settings.System.NOTIFICATION_MATERIAL_DISMISS;
 
     private static final String BANNER_ACTION_CANCEL =
             "com.android.systemui.statusbar.banner_action_cancel";
@@ -427,6 +454,7 @@ public class StatusBar extends SystemUI implements DemoMode,
 
     // settings
     private QSPanel mQSPanel;
+    private QuickStatusBarHeader mQuickStatusBarHeader;
 
     KeyguardIndicationController mKeyguardIndicationController;
 
@@ -473,6 +501,8 @@ public class StatusBar extends SystemUI implements DemoMode,
 
     private final DisplayMetrics mDisplayMetrics;
 
+    private boolean mHeadsUpDisabled, mGamingModeActivated;
+
     // XXX: gesture research
     private final GestureRecorder mGestureRec = DEBUG_GESTURES
         ? new GestureRecorder("/sdcard/statusbar_gestures.dat")
@@ -481,6 +511,10 @@ public class StatusBar extends SystemUI implements DemoMode,
     private final ScreenPinningRequest mScreenPinningRequest;
 
     private final MetricsLogger mMetricsLogger;
+
+    private ImageButton mDismissAllButton;
+    private boolean mClearableNotifications = true;
+    private boolean mShowDimissButton;
 
     private final Runnable mLongPressBrightnessChange = new Runnable() {
         @Override
@@ -572,6 +606,7 @@ public class StatusBar extends SystemUI implements DemoMode,
     private final NotificationLockscreenUserManager mLockscreenUserManager;
     private final NotificationRemoteInputManager mRemoteInputManager;
     private boolean mWallpaperSupported;
+    private VolumePluginManager mVolumePluginManager;
 
     private final BroadcastReceiver mWallpaperChangedReceiver = new BroadcastReceiver() {
         @Override
@@ -914,20 +949,17 @@ public class StatusBar extends SystemUI implements DemoMode,
         mStatusBarStateController.addCallback(this,
                 SysuiStatusBarStateController.RANK_STATUS_BAR);
 
-        mNeedsNavigationBar = mContext.getResources().getBoolean(
-                com.android.internal.R.bool.config_showNavigationBar);
-        // Allow a system property to override this. Used by the emulator.
-        // See also hasNavigationBar().
-        String navBarOverride = SystemProperties.get("qemu.hw.mainkeys");
-        if ("1".equals(navBarOverride)) {
-            mNeedsNavigationBar = false;
-        } else if ("0".equals(navBarOverride)) {
-            mNeedsNavigationBar = true;
-        }
-
         mTunerService.addTunable(this, FORCE_SHOW_NAVBAR);
         mTunerService.addTunable(this, SCREEN_BRIGHTNESS_MODE);
         mTunerService.addTunable(this, STATUS_BAR_BRIGHTNESS_CONTROL);
+        mTunerService.addTunable(this, QS_ROWS_PORTRAIT);
+        mTunerService.addTunable(this, QS_ROWS_LANDSCAPE);
+        mTunerService.addTunable(this, QS_COLUMNS_PORTRAIT);
+        mTunerService.addTunable(this, QS_COLUMNS_LANDSCAPE);
+        mTunerService.addTunable(this, QS_TILE_TITLE_VISIBILITY);
+        mTunerService.addTunable(this, GAMING_MODE_ACTIVE);
+        mTunerService.addTunable(this, GAMING_MODE_HEADSUP_TOGGLE);
+        mTunerService.addTunable(this, NOTIFICATION_MATERIAL_DISMISS);
 
         mDisplayManager = mContext.getSystemService(DisplayManager.class);
 
@@ -958,6 +990,8 @@ public class StatusBar extends SystemUI implements DemoMode,
         mWallpaperSupported =
                 mContext.getSystemService(WallpaperManager.class).isWallpaperSupported();
 
+        mVolumePluginManager = new VolumePluginManager(mContext, mHandler);
+
         // Connect in to the status bar manager service
         mCommandQueue.addCallback(this);
 
@@ -969,6 +1003,9 @@ public class StatusBar extends SystemUI implements DemoMode,
         }
 
         createAndAddWindows(result);
+
+        mSakuraSettingsObserver.observe();
+        mSakuraSettingsObserver.update();
 
         if (mWallpaperSupported) {
             // Make sure we always have the most current wallpaper info.
@@ -1113,6 +1150,7 @@ public class StatusBar extends SystemUI implements DemoMode,
         inflateStatusBarWindow();
         mNotificationShadeWindowViewController.setService(this, mNotificationShadeWindowController);
         mNotificationShadeWindowView.setOnTouchListener(getStatusBarWindowTouchListener());
+        mDismissAllButton = mNotificationShadeWindowView.findViewById(R.id.clear_notifications);
 
         mMinBrightness = context.getResources().getInteger(
                 com.android.internal.R.integer.config_screenBrightnessDim);
@@ -1216,6 +1254,9 @@ public class StatusBar extends SystemUI implements DemoMode,
 
         mAmbientIndicationContainer = mNotificationShadeWindowView.findViewById(
                 R.id.ambient_indication_container);
+        if (mAmbientIndicationContainer != null) {
+            ((AmbientIndicationContainer) mAmbientIndicationContainer).initializeView(this, mHandler);
+        }
 
         mAutoHideController.setStatusBar(new AutoHideUiElement() {
             @Override
@@ -1395,6 +1436,7 @@ public class StatusBar extends SystemUI implements DemoMode,
         filter.addAction(Intent.ACTION_SCREEN_OFF);
         filter.addAction(DevicePolicyManager.ACTION_SHOW_DEVICE_MONITORING_DIALOG);
         filter.addAction(lineageos.content.Intent.ACTION_SCREEN_CAMERA_GESTURE);
+        filter.addAction(NotificationPanelViewController.CANCEL_NOTIFICATION_PULSE_ACTION);
         mBroadcastDispatcher.registerReceiver(mBroadcastReceiver, filter, null, UserHandle.ALL);
     }
 
@@ -2073,6 +2115,53 @@ public class StatusBar extends SystemUI implements DemoMode,
         }
     }
 
+    private CustomSettingsObserver mCustomSettingsObserver = new CustomSettingsObserver(mHandler);
+    private class CustomSettingsObserver extends ContentObserver {
+
+        CustomSettingsObserver(Handler handler) {
+            super(handler);
+        }
+
+        void observe() {
+            ContentResolver resolver = mContext.getContentResolver();
+            resolver.registerContentObserver(Settings.System.getUriFor(
+                    Settings.System.PULSE_ON_NEW_TRACKS),
+                    false, this, UserHandle.USER_ALL);
+            resolver.registerContentObserver(Settings.System.getUriFor(
+                    Settings.System.LESS_BORING_HEADS_UP),
+                    false, this, UserHandle.USER_ALL);
+        }
+
+        @Override
+        public void onChange(boolean selfChange, Uri uri) {
+            if (uri.equals(Settings.System.getUriFor(
+                    Settings.System.PULSE_ON_NEW_TRACKS))) {
+                setPulseOnNewTracks();
+            }
+        }
+
+        public void update() {
+            setPulseOnNewTracks();
+            setUseLessBoringHeadsUp();
+        }
+    }
+
+    private void setPulseOnNewTracks() {
+        if (KeyguardSliceProvider.getAttachedInstance() != null) {
+            KeyguardSliceProvider.getAttachedInstance().setPulseOnNewTracks(Settings.System.getIntForUser(mContext.getContentResolver(),
+                    Settings.System.PULSE_ON_NEW_TRACKS, 1,
+                    UserHandle.USER_CURRENT) == 1);
+        }
+    }
+
+    private void setUseLessBoringHeadsUp() {
+        boolean lessBoringHeadsUp = Settings.System.getIntForUser(mContext.getContentResolver(),
+                Settings.System.LESS_BORING_HEADS_UP, 0,
+                UserHandle.USER_CURRENT) == 1;
+        if (mNotificationInterruptStateProvider != null)
+            mNotificationInterruptStateProvider.setUseLessBoringHeadsUp(lessBoringHeadsUp);
+    }
+
     /**
      * All changes to the status bar and notifications funnel through here and are batched.
      */
@@ -2332,6 +2421,40 @@ public class StatusBar extends SystemUI implements DemoMode,
         if (!mStatusBarKeyguardViewManager.isShowing()) {
             WindowManagerGlobal.getInstance().trimMemory(ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN);
         }
+    }
+
+    public void updateDismissAllVisibility(boolean visible) {
+        if (mDismissAllButton == null) return;
+        if (mShowDimissButton && mClearableNotifications && mState != StatusBarState.KEYGUARD && visible) {
+            mDismissAllButton.setVisibility(View.VISIBLE);
+            int DismissAllAlpha = Math.round(255.0f * mNotificationPanelViewController.getExpandedFraction());
+            mDismissAllButton.setAlpha(DismissAllAlpha);
+            mDismissAllButton.getBackground().setAlpha(DismissAllAlpha);
+        } else {
+            mDismissAllButton.setAlpha(0);
+            mDismissAllButton.getBackground().setAlpha(0);
+            mDismissAllButton.setVisibility(View.GONE);
+        }
+    }
+
+    public void updateDismissAllButton(int iconcolor) {
+        if (mDismissAllButton != null) {
+            FrameLayout.LayoutParams layoutParams = (FrameLayout.LayoutParams) mDismissAllButton.getLayoutParams();
+            layoutParams.width = mContext.getResources().getDimensionPixelSize(R.dimen.dismiss_all_button_width);
+            layoutParams.height = mContext.getResources().getDimensionPixelSize(R.dimen.dismiss_all_button_height);
+            layoutParams.bottomMargin = mContext.getResources().getDimensionPixelSize(R.dimen.dismiss_all_button_margin_bottom);
+            mDismissAllButton.setElevation(mContext.getResources().getDimension(R.dimen.dismiss_all_button_elevation));
+            mDismissAllButton.setColorFilter(iconcolor);
+            mDismissAllButton.setBackground(mContext.getResources().getDrawable(R.drawable.dismiss_all_background));
+        }
+    }
+
+    public void setHasClearableNotifs(boolean notifs) {
+        mClearableNotifications = notifs;
+    }
+
+    public View getDismissAllButton() {
+        return mDismissAllButton;
     }
 
     private void adjustBrightness(int x) {
@@ -3045,6 +3168,9 @@ public class StatusBar extends SystemUI implements DemoMode,
 
                 onCameraLaunchGestureDetected(StatusBarManager.CAMERA_LAUNCH_SOURCE_SCREEN_GESTURE);
             }
+            else if (NotificationPanelViewController.CANCEL_NOTIFICATION_PULSE_ACTION.equals(action)) {
+                mNotificationPanelViewController.stopNotificationPulse();
+            }
         }
     };
 
@@ -3119,6 +3245,10 @@ public class StatusBar extends SystemUI implements DemoMode,
 
         mViewHierarchyManager.updateRowStates();
         mScreenPinningRequest.onConfigurationChanged();
+    }
+
+    public NotificationLockscreenUserManager getNotificationLockscreenUserManager() {
+        return mLockscreenUserManager;
     }
 
     /**
@@ -3696,6 +3826,14 @@ public class StatusBar extends SystemUI implements DemoMode,
         mNotificationPanelViewController.setDozing(mDozing, animate, mWakeUpTouchLocation);
         mVisualizerView.setDozing(mDozing);
         updateQsExpansionEnabled();
+
+        if (mAmbientIndicationContainer != null) {
+            ((AmbientIndicationContainer)mAmbientIndicationContainer)
+                    .updateDozingState(mDozing);
+        } else {
+            Log.d("StatusBar", "updateDozingState -> AmbientIndicationContainer null");
+        }
+
         Trace.endSection();
     }
 
@@ -3798,6 +3936,9 @@ public class StatusBar extends SystemUI implements DemoMode,
 
     @Override
     public void onStateChanged(int newState) {
+        if (mState != newState) {
+            updateDismissAllVisibility(true);
+        }
         mState = newState;
         updateReportRejectedTouchVisibility();
         mDozeServiceHost.updateDozing();
@@ -3811,9 +3952,6 @@ public class StatusBar extends SystemUI implements DemoMode,
                         mStatusBarStateController.fromShadeLocked());
             }
             if (mStatusBarView != null) mStatusBarView.removePendingHideExpandedRunnables();
-            if (mAmbientIndicationContainer != null) {
-                mAmbientIndicationContainer.setVisibility(View.VISIBLE);
-            }
         } else {
             mKeyguardIndicationController.setVisible(false);
             if (mKeyguardUserSwitcher != null) {
@@ -3822,9 +3960,6 @@ public class StatusBar extends SystemUI implements DemoMode,
                                 mState == StatusBarState.SHADE_LOCKED ||
                                 mStatusBarStateController.fromShadeLocked());
             }
-            if (mAmbientIndicationContainer != null) {
-                mAmbientIndicationContainer.setVisibility(View.INVISIBLE);
-            }
         }
         updateDozingState();
         checkBarModes();
@@ -3832,6 +3967,13 @@ public class StatusBar extends SystemUI implements DemoMode,
         mPresenter.updateMediaMetaData(false, mState != StatusBarState.KEYGUARD);
         mVisualizerView.setStatusBarState(newState);
         updateKeyguardState();
+
+        if (mAmbientIndicationContainer != null) {
+            ((AmbientIndicationContainer)mAmbientIndicationContainer)
+                    .updateKeyguardState(mState == StatusBarState.KEYGUARD);
+        } else {
+            Log.d("StatusBar", "updateKeyguardState -> AmbientIndicationContainer null");
+        }
         Trace.endSection();
     }
 
@@ -3872,6 +4014,8 @@ public class StatusBar extends SystemUI implements DemoMode,
             // the closing
             mNotificationShadeWindowController.setNotificationShadeFocusable(true);
         }
+        // It's closed; no need to leave it open.
+        mStatusBarStateController.setLeaveOpenOnKeyguardHide(false);
     }
 
     public void onUnlockHintStarted() {
@@ -4099,6 +4243,41 @@ public class StatusBar extends SystemUI implements DemoMode,
         }
     };
 
+    private SakuraSettingsObserver mSakuraSettingsObserver = new SakuraSettingsObserver(mHandler);
+    private class SakuraSettingsObserver extends ContentObserver {
+        SakuraSettingsObserver(Handler handler) {
+            super(handler);
+        }
+         void observe() {
+            ContentResolver resolver = mContext.getContentResolver();
+            resolver.registerContentObserver(Settings.System.getUriFor(
+                    Settings.System.HEADS_UP_STOPLIST_VALUES), false, this);
+            resolver.registerContentObserver(Settings.System.getUriFor(
+                    Settings.System.HEADS_UP_BLACKLIST_VALUES), false, this);
+            resolver.registerContentObserver(Settings.System.getUriFor(
+                    Settings.System.QS_DATAUSAGE),
+                    false, this, UserHandle.USER_ALL);                    
+        }
+         @Override
+        public void onChange(boolean selfChange, Uri uri) {
+            update();
+        }
+         public void update() {
+            setHeadsUpStoplist();
+            setHeadsUpBlacklist();
+        }
+    }
+
+    private void setHeadsUpStoplist() {
+        if (mNotificationInterruptStateProvider != null)
+            mNotificationInterruptStateProvider.setHeadsUpStoplist();
+    }
+
+    private void setHeadsUpBlacklist() {
+        if (mNotificationInterruptStateProvider != null)
+            mNotificationInterruptStateProvider.setHeadsUpBlacklist();
+    }
+
     public int getWakefulnessState() {
         return mWakefulnessLifecycle.getWakefulness();
     }
@@ -4245,8 +4424,7 @@ public class StatusBar extends SystemUI implements DemoMode,
 
         boolean launchingAffordanceWithPreview =
                 mNotificationPanelViewController.isLaunchingAffordanceWithPreview();
-        mScrimController.setLaunchingAffordanceWithPreview(launchingAffordanceWithPreview
-                || mBiometricUnlockController.isWakeAndUnlock());
+        mScrimController.setLaunchingAffordanceWithPreview(true);
 
         if (mBouncerShowing) {
             // Bouncer needs the front scrim when it's on top of an activity,
@@ -4325,7 +4503,6 @@ public class StatusBar extends SystemUI implements DemoMode,
     private final DeviceProvisionedController mDeviceProvisionedController;
 
     private final NavigationBarController mNavigationBarController;
-    private boolean mNeedsNavigationBar;
 
     // UI-specific methods
 
@@ -4345,6 +4522,28 @@ public class StatusBar extends SystemUI implements DemoMode,
 
     public boolean isDeviceInteractive() {
         return mDeviceInteractive;
+    }
+
+    private SbSettingsObserver mSbSettingsObserver = new SbSettingsObserver(mHandler);
+    private class SbSettingsObserver extends ContentObserver {
+        SbSettingsObserver(Handler handler) {
+            super(handler);
+        }
+
+        void observe() {
+            ContentResolver resolver = mContext.getContentResolver();
+            resolver.registerContentObserver(Settings.System.getUriFor(
+                    Settings.System.QS_PANEL_BG_USE_NEW_TINT),
+                    false, this, UserHandle.USER_ALL);
+        }
+
+        @Override
+        public void onChange(boolean selfChange, Uri uri) {
+            super.onChange(selfChange, uri);
+            if (uri.equals(Settings.System.getUriFor(Settings.System.QS_PANEL_BG_USE_NEW_TINT))) {
+                mQSPanel.getHost().reloadAllTiles();
+            }
+       }
     }
 
     private final BroadcastReceiver mBannerActionBroadcastReceiver = new BroadcastReceiver() {
@@ -4644,27 +4843,63 @@ public class StatusBar extends SystemUI implements DemoMode,
 
     @Override
     public void onTuningChanged(String key, String newValue) {
-        if (FORCE_SHOW_NAVBAR.equals(key) && mDisplayId == Display.DEFAULT_DISPLAY &&
-                mWindowManagerService != null) {
-            boolean forcedVisibility = mNeedsNavigationBar ||
-                    TunerService.parseIntegerSwitch(newValue, false);
-            boolean hasNavbar = getNavigationBarView() != null;
-            if (forcedVisibility) {
-                if (!hasNavbar) {
-                    mNavigationBarController.onDisplayReady(mDisplayId);
+        switch (key) {
+            case FORCE_SHOW_NAVBAR:
+                if (mDisplayId != Display.DEFAULT_DISPLAY ||
+                        mWindowManagerService == null)
+                    return;
+                boolean mNavbarVisible =
+                        TunerService.parseIntegerSwitch(newValue, Utils.hasNavbarByDefault(mContext));
+                boolean hasNavbar = getNavigationBarView() != null;
+                if (mNavbarVisible) {
+                    if (!hasNavbar) {
+                        try {
+                            mNavigationBarController.onDisplayReady(mDisplayId);
+                        } catch (Exception e) { }
+                    }
+                } else {
+                    if (hasNavbar) {
+                        try {
+                            mNavigationBarController.onDisplayRemoved(mDisplayId);
+                        } catch (Exception e) { }
+                    }
                 }
-            } else {
-                if (hasNavbar) {
-                    mNavigationBarController.onDisplayRemoved(mDisplayId);
+                break;
+            case SCREEN_BRIGHTNESS_MODE:
+                mAutomaticBrightness = Settings.System.SCREEN_BRIGHTNESS_MODE_AUTOMATIC ==
+                        TunerService.parseInteger(newValue,
+                                Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL);
+                break;
+            case STATUS_BAR_BRIGHTNESS_CONTROL:
+                mBrightnessControl = TunerService.parseIntegerSwitch(newValue, false);
+                break;
+            case QS_ROWS_PORTRAIT:
+            case QS_ROWS_LANDSCAPE:
+            case QS_COLUMNS_PORTRAIT:
+            case QS_COLUMNS_LANDSCAPE:
+            case QS_TILE_TITLE_VISIBILITY:
+                if (mQSPanel != null) {
+                    mQSPanel.updateResources();
                 }
-            }
-        } else if (SCREEN_BRIGHTNESS_MODE.equals(key)) {
-            mAutomaticBrightness = Settings.System.SCREEN_BRIGHTNESS_MODE_AUTOMATIC ==
-                    TunerService.parseInteger(newValue,
-                            Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL);
-        } else if (STATUS_BAR_BRIGHTNESS_CONTROL.equals(key)) {
-            mBrightnessControl = TunerService.parseIntegerSwitch(newValue, false);
-        }
+                break;
+            case GAMING_MODE_ACTIVE:
+                mGamingModeActivated =
+                        TunerService.parseIntegerSwitch(newValue, false);
+                mNotificationInterruptStateProvider.setGamingPeekMode(mGamingModeActivated && mHeadsUpDisabled);
+                break;
+            case GAMING_MODE_HEADSUP_TOGGLE:
+                mHeadsUpDisabled =
+                        TunerService.parseIntegerSwitch(newValue, true);
+                mNotificationInterruptStateProvider.setGamingPeekMode(mGamingModeActivated && mHeadsUpDisabled);
+                break;
+            case NOTIFICATION_MATERIAL_DISMISS:
+                mShowDimissButton =
+                        TunerService.parseIntegerSwitch(newValue, false);
+                updateDismissAllVisibility(true);
+                break;
+            default:
+                break;
+         }
     }
     // End Extra BaseStatusBarMethods.
 
@@ -4697,5 +4932,11 @@ public class StatusBar extends SystemUI implements DemoMode,
 
     public int getFodHeight(boolean includeDecor) {
         return mFODCircleViewImpl.getHeight(includeDecor);
+    }
+
+    public void updateDataUsageImage() {
+        if (mQuickStatusBarHeader != null) {
+            mQuickStatusBarHeader.updateDataUsageImage();
+        }
     }
 }

@@ -99,7 +99,7 @@
     <integer name="quick_settings_num_columns">3</integer>
 
     <!-- The number of rows in the QuickSettings -->
-    <integer name="quick_settings_max_rows">3</integer>
+    <integer name="quick_settings_max_rows">8</integer>
 
     <!-- The number of columns that the top level tiles span in the QuickSettings -->
     <integer name="quick_settings_user_time_settings_tile_span">1</integer>
@@ -114,7 +114,7 @@
 
     <!-- Tiles native to System UI. Order should match "quick_settings_tiles_default" -->
     <string name="quick_settings_tiles_stock" translatable="false">
-        wifi,cell,battery,dnd,flashlight,rotation,bt,airplane,nfc,location,hotspot,inversion,saver,dark,work,cast,night,screenrecord,reverse,ambient_display,aod,caffeine,heads_up,livedisplay,powershare,profiles,reading_mode,sync,usb_tether,volume_panel,vpn,anti_flicker
+        wifi,cell,battery,dnd,flashlight,rotation,bt,airplane,nfc,location,hotspot,inversion,saver,dark,work,cast,night,screenrecord,reverse,ambient_display,aod,dataswitch,caffeine,heads_up,livedisplay,powershare,profiles,reading_mode,sync,usb_tether,volume_panel,cpuinfo,fpsinfo,gaming,weather,anti_flicker,reboot,screenshot
     </string>
 
     <!-- The tiles to display in QuickSettings -->
@@ -527,6 +527,9 @@
 
     <!-- Preferred refresh rate at keyguard, if supported by the display -->
     <integer name="config_keyguardRefreshRate">-1</integer>
+    
+    <!-- Whether to show VoLTE icon in the status bar -->
+    <bool name="config_display_volte">true</bool>
 
     <!-- Whether or not to add a "people" notifications section -->
     <bool name="config_usePeopleFiltering">false</bool>

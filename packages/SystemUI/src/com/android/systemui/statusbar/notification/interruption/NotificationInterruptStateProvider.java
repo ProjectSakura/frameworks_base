@@ -56,4 +56,15 @@ public interface NotificationInterruptStateProvider {
      * Add a component that can suppress visual interruptions.
      */
     void addSuppressor(NotificationInterruptSuppressor suppressor);
+
+    void setHeadsUpStoplist();
+    void setHeadsUpBlacklist();
+
+    void setUseLessBoringHeadsUp(boolean lessBoring);
+
+    /**
+     * Whether heads-up notification should be skipped when Gaming mode is active.
+     */
+    void setGamingPeekMode(boolean skipHeadsUp);
+
 }

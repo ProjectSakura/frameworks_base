@@ -390,9 +390,9 @@ prioridá</string>
     <string name="dnd_suppressing_shade_text">Avisos posaos por Nun Molestar</string>
     <string name="media_projection_action_text">Aniciar agora</string>
     <string name="empty_shade_text">Nun hai avisos</string>
-    <string name="profile_owned_footer">Quiciabes el perfil tea supervisáu</string>
-    <string name="vpn_footer">Quiciabes la rede tea supervisada</string>
-    <string name="branded_vpn_footer">Quiciabes la rede tea supervisada</string>
+    <string name="profile_owned_footer">Podría supervisase\'l perfil</string>
+    <string name="vpn_footer">Podría supervisase la rede</string>
+    <string name="branded_vpn_footer">Podría supervisase la rede</string>
     <string name="quick_settings_disclosure_management">Esti preséu pertenez a la to organización</string>
     <string name="quick_settings_disclosure_named_management">Esti preséu pertenez a <xliff:g id="organization_name" example="Foo, Inc.">%1$s</xliff:g></string>
     <string name="quick_settings_disclosure_managed_profile_monitoring">La to organización puede monitorizar el tráficu de rede nel to perfil de trabayu</string>

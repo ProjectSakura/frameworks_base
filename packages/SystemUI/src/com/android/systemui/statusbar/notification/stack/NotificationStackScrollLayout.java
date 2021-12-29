@@ -205,6 +205,12 @@ public class NotificationStackScrollLayout extends ViewGroup implements ScrollAd
     private final SysuiStatusBarStateController mStatusbarStateController;
     private final KeyguardMediaController mKeyguardMediaController;
 
+    private static final String NOTIFICATION_BG_ALPHA =
+            "system:" + Settings.System.NOTIFICATION_BG_ALPHA;
+
+    private static final String NOTIFICATION_MATERIAL_DISMISS =
+            "system:" + Settings.System.NOTIFICATION_MATERIAL_DISMISS;
+
     private ExpandHelper mExpandHelper;
     private final NotificationSwipeHelper mSwipeHelper;
     private int mCurrentStackHeight = Integer.MAX_VALUE;
@@ -389,6 +395,7 @@ public class NotificationStackScrollLayout extends ViewGroup implements ScrollAd
     private boolean mAnimateNextBackgroundBottom;
     private boolean mAnimateNextSectionBoundsChange;
     private int mBgColor;
+    private int mIconColor;
     private float mDimAmount;
     private ValueAnimator mDimAnimator;
     private ArrayList<ExpandableView> mTmpSortedChildren = new ArrayList<>();
@@ -483,6 +490,7 @@ public class NotificationStackScrollLayout extends ViewGroup implements ScrollAd
     private int mMaxDisplayedNotifications = -1;
     private int mStatusBarHeight;
     private int mMinInteractionHeight;
+    private int mNotificationBackgroundAlpha;
     private boolean mNoAmbient;
     private final Rect mClipRect = new Rect();
     private boolean mIsClipped;
@@ -543,6 +551,8 @@ public class NotificationStackScrollLayout extends ViewGroup implements ScrollAd
     private int mGapHeight;
 
     private int mWaterfallTopInset;
+
+    private boolean mShowDimissButton;
 
     private SysuiColorExtractor.OnColorsChangedListener mOnColorsChangedListener =
             (colorExtractor, which) -> {
@@ -649,9 +659,17 @@ public class NotificationStackScrollLayout extends ViewGroup implements ScrollAd
                 updateDismissRtlSetting("1".equals(newValue));
             } else if (key.equals(Settings.Secure.NOTIFICATION_HISTORY_ENABLED)) {
                 updateFooter();
+            } else if (key.equals(NOTIFICATION_BG_ALPHA)) {
+                mNotificationBackgroundAlpha =
+                        TunerService.parseInteger(newValue, 255);
+                updateBackgroundDimming();
+            } else if (key.equals(NOTIFICATION_MATERIAL_DISMISS)) {
+                mShowDimissButton = TunerService.parseIntegerSwitch(newValue, false);
+                updateFooter();
             }
         }, HIGH_PRIORITY, Settings.Secure.NOTIFICATION_DISMISS_RTL,
-                Settings.Secure.NOTIFICATION_HISTORY_ENABLED);
+                Settings.Secure.NOTIFICATION_HISTORY_ENABLED,
+                NOTIFICATION_MATERIAL_DISMISS);
 
         mDeviceProvisionedController.addCallback(
                 new DeviceProvisionedListener() {
@@ -772,7 +790,9 @@ public class NotificationStackScrollLayout extends ViewGroup implements ScrollAd
         inflateFooterView();
         inflateEmptyShadeView();
         updateFooter();
+        mIconColor = mContext.getColor(R.color.dismiss_all_icon_color);
         mSectionsManager.reinflateViews(LayoutInflater.from(mContext));
+        mStatusBar.updateDismissAllButton(mIconColor);
     }
 
     @Override
@@ -799,6 +819,7 @@ public class NotificationStackScrollLayout extends ViewGroup implements ScrollAd
             return;
         }
         boolean showDismissView = mClearAllEnabled && hasActiveClearableNotifications(ROWS_ALL);
+        mStatusBar.setHasClearableNotifs(hasActiveClearableNotifications(ROWS_ALL));
         boolean showFooterView = (showDismissView || hasActiveNotifications())
                 && mIsCurrentUserSetup  // see: b/193149550
                 && mStatusBarState != StatusBarState.KEYGUARD
@@ -831,8 +852,27 @@ public class NotificationStackScrollLayout extends ViewGroup implements ScrollAd
         return false;
     }
 
-  @ShadeViewRefactor(RefactorComponent.SHADE_VIEW)
-  public RemoteInputController.Delegate createDelegate() {
+    /** @hide */
+    public ExpandableNotificationRow getFirstActiveClearableNotifications(@SelectedRows int selection) {
+        if (mDynamicPrivacyController.isInLockedDownShade()) {
+            return null;
+        }
+        int childCount = getChildCount();
+        for (int i = 0; i < childCount; i++) {
+            View child = getChildAt(i);
+            if (!(child instanceof ExpandableNotificationRow)) {
+                continue;
+            }
+            final ExpandableNotificationRow row = (ExpandableNotificationRow) child;
+            if (row.canViewBeDismissed() && matchesSelection(row, selection)) {
+                return row;
+            }
+        }
+        return null;
+    }
+
+    @ShadeViewRefactor(RefactorComponent.SHADE_VIEW)
+    public RemoteInputController.Delegate createDelegate() {
         return new RemoteInputController.Delegate() {
             public void setRemoteInputActive(NotificationEntry entry,
                     boolean remoteInputActive) {
@@ -879,8 +919,10 @@ public class NotificationStackScrollLayout extends ViewGroup implements ScrollAd
     @ShadeViewRefactor(RefactorComponent.SHADE_VIEW)
     public void onUiModeChanged() {
         mBgColor = mContext.getColor(R.color.notification_shade_background_color);
+        mIconColor = mContext.getColor(R.color.dismiss_all_icon_color);
         updateBackgroundDimming();
         mShelf.onUiModeChanged();
+        mStatusBar.updateDismissAllButton(mIconColor);
     }
 
     @ShadeViewRefactor(RefactorComponent.DECORATOR)
@@ -1069,9 +1111,11 @@ public class NotificationStackScrollLayout extends ViewGroup implements ScrollAd
                 mLinearHideAmount);
         int color = ColorUtils.blendARGB(mBgColor, Color.WHITE, colorInterpolation);
 
-        if (mCachedBackgroundColor != color) {
+        if (mCachedBackgroundColor != color ||
+                mBackgroundPaint.getAlpha() != mNotificationBackgroundAlpha) {
             mCachedBackgroundColor = color;
             mBackgroundPaint.setColor(color);
+            mBackgroundPaint.setAlpha(mNotificationBackgroundAlpha);
             invalidate();
         }
     }
@@ -1359,6 +1403,22 @@ public class NotificationStackScrollLayout extends ViewGroup implements ScrollAd
             }
         }
         return count;
+    }
+
+    /**
+     * Returns a boolean var true if has visible notifications.
+     */
+    public boolean isVisibleNotification() {
+        for (int i = 0; i < getChildCount(); i++) {
+            final View child = getChildAt(i);
+            if (child.getVisibility() != View.GONE && child instanceof ExpandableNotificationRow) {
+                return true;
+            }
+        }
+        if (mKeyguardMediaController.getView().getVisibility() != View.GONE) {
+            return true;
+        }
+        return false;
     }
 
     @ShadeViewRefactor(RefactorComponent.STATE_RESOLVER)
@@ -5088,7 +5148,7 @@ public class NotificationStackScrollLayout extends ViewGroup implements ScrollAd
         }
         boolean animate = mIsExpanded && mAnimationsEnabled;
         mFooterView.setVisible(visible, animate);
-        mFooterView.setSecondaryVisible(showDismissView, animate);
+        mFooterView.setSecondaryVisible(!mShowDimissButton && showDismissView, animate);
         mFooterView.showHistory(showHistory);
     }
 
@@ -5809,12 +5869,24 @@ public class NotificationStackScrollLayout extends ViewGroup implements ScrollAd
         FooterView footerView = (FooterView) LayoutInflater.from(mContext).inflate(
                 R.layout.status_bar_notification_footer, this, false);
         footerView.setDismissButtonClickListener(v -> {
-            mMetricsLogger.action(MetricsEvent.ACTION_DISMISS_ALL_NOTES);
-            clearNotifications(ROWS_ALL, true /* closeShade */);
+            if (!mShowDimissButton) {
+                mMetricsLogger.action(MetricsEvent.ACTION_DISMISS_ALL_NOTES);
+                clearNotifications(ROWS_ALL, true /* closeShade */);
+            }
         });
         footerView.setManageButtonClickListener(v -> {
             mNotificationActivityStarter.startHistoryIntent(mFooterView.isHistoryShown());
         });
+        if (mStatusBar != null) {
+            if (mStatusBar.getDismissAllButton() != null) {
+                mStatusBar.getDismissAllButton().setOnClickListener(v -> {
+                    if (mShowDimissButton) {
+                        mMetricsLogger.action(MetricsEvent.ACTION_DISMISS_ALL_NOTES);
+                        clearNotifications(ROWS_ALL, true /* closeShade */);
+                    }
+                });
+            }
+        }
         setFooterView(footerView);
     }
 

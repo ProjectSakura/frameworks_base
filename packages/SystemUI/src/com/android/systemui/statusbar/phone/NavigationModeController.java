@@ -21,6 +21,7 @@ import static android.view.WindowManagerPolicyConstants.NAV_BAR_MODE_GESTURAL;
 import static android.view.WindowManagerPolicyConstants.NAV_BAR_MODE_GESTURAL_OVERLAY;
 
 import android.content.BroadcastReceiver;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -28,6 +29,9 @@ import android.content.om.IOverlayManager;
 import android.content.om.OverlayInfo;
 import android.content.pm.PackageManager;
 import android.content.res.ApkAssets;
+import android.database.ContentObserver;
+import android.net.Uri;
+import android.os.Handler;
 import android.os.PatternMatcher;
 import android.os.RemoteException;
 import android.os.ServiceManager;
@@ -59,8 +63,11 @@ public class NavigationModeController implements Dumpable {
     private static final String TAG = NavigationModeController.class.getSimpleName();
     private static final boolean DEBUG = true;
 
+    private static final String HIDDEN_OVERLAY_PKG = "com.custom.overlay.systemui.gestural.hidden";
+
     public interface ModeChangedListener {
         void onNavigationModeChanged(int mode);
+        default void onSettingsChanged() {}
     }
 
     private final Context mContext;
@@ -83,6 +90,21 @@ public class NavigationModeController implements Dumpable {
                     updateCurrentInteractionMode(true /* notify */);
                 }
             };
+
+    private final class SettingsObserver extends ContentObserver {
+        public SettingsObserver(Handler handler) {
+            super(handler);
+        }
+
+        @Override
+        public void onChange(boolean selfChange, Uri uri) {
+            for (int i = 0; i < mListeners.size(); i++) {
+                mListeners.get(i).onSettingsChanged();
+            }
+        }
+    }
+
+    private SettingsObserver mSettingsObserver;
 
     // The primary user SysUI process doesn't get AppInfo changes from overlay package changes for
     // the secondary user (b/158613864), so we need to update the interaction mode here as well
@@ -115,6 +137,11 @@ public class NavigationModeController implements Dumpable {
         overlayFilter.addDataSchemeSpecificPart("android", PatternMatcher.PATTERN_LITERAL);
         mContext.registerReceiverAsUser(mReceiver, UserHandle.ALL, overlayFilter, null, null);
 
+        mSettingsObserver = new SettingsObserver(new Handler());
+        mContext.getContentResolver().registerContentObserver(Settings.System.getUriFor(
+                Settings.System.BACK_GESTURE_HEIGHT),
+                false, mSettingsObserver, UserHandle.USER_ALL);
+
         configurationController.addCallback(new ConfigurationController.ConfigurationListener() {
             @Override
             public void onOverlayChanged() {
@@ -132,7 +159,9 @@ public class NavigationModeController implements Dumpable {
         mCurrentUserContext = getCurrentUserContext();
         int mode = getCurrentInteractionMode(mCurrentUserContext);
         if (mode == NAV_BAR_MODE_GESTURAL) {
-            switchToDefaultGestureNavOverlayIfNecessary();
+            boolean hidden = Settings.Secure.getFloat(mCurrentUserContext.getContentResolver(),
+                    Secure.GESTURE_NAVBAR_LENGTH, 1.0f) == 0.0f;
+            switchToDefaultGestureNavOverlayIfNecessary(hidden);
         }
         mUiBgExecutor.execute(() ->
             Settings.Secure.putString(mCurrentUserContext.getContentResolver(),
@@ -187,18 +216,20 @@ public class NavigationModeController implements Dumpable {
         }
     }
 
-    private void switchToDefaultGestureNavOverlayIfNecessary() {
+    private void switchToDefaultGestureNavOverlayIfNecessary(boolean hidden) {
         final int userId = mCurrentUserContext.getUserId();
         try {
             final IOverlayManager om = IOverlayManager.Stub.asInterface(
                     ServiceManager.getService(Context.OVERLAY_SERVICE));
-            final OverlayInfo info = om.getOverlayInfo(NAV_BAR_MODE_GESTURAL_OVERLAY, userId);
+            final OverlayInfo info = om.getOverlayInfo(hidden ? HIDDEN_OVERLAY_PKG :
+                                                       NAV_BAR_MODE_GESTURAL_OVERLAY, userId);
             if (info != null && !info.isEnabled()) {
                 // Enable the default gesture nav overlay, and move the back gesture inset scale to
                 // Settings.Secure for left and right sensitivity.
                 final int curInset = mCurrentUserContext.getResources().getDimensionPixelSize(
                         com.android.internal.R.dimen.config_backGestureInset);
-                om.setEnabledExclusiveInCategory(NAV_BAR_MODE_GESTURAL_OVERLAY, userId);
+                om.setEnabledExclusiveInCategory(hidden ? HIDDEN_OVERLAY_PKG :
+                                                 NAV_BAR_MODE_GESTURAL_OVERLAY, userId);
                 final int defInset = mCurrentUserContext.getResources().getDimensionPixelSize(
                         com.android.internal.R.dimen.config_backGestureInset);
 

@@ -679,6 +679,16 @@
     <!-- Used to launch a common app (FlipFlap) for devices with flip cover. -->
     <protected-broadcast android:name="lineageos.intent.action.LID_STATE_CHANGED" />
 
+    <!-- Gaming mode -->
+    <protected-broadcast android:name="android.intent.action.GAMING_MODE_TURN_OFF" />
+    <protected-broadcast android:name="android.intent.action.GAMING_MODE_TURN_ON" />
+
+    <!-- IMS Status -->
+    <protected-broadcast android:name="android.intent.action.IMS_REGISTRATION_CHANGED" />
+
+    <!-- Font service -->
+    <protected-broadcast android:name="com.android.server.ACTION_FONT_CHANGED" />
+
     <!-- ====================================================================== -->
     <!--                          RUNTIME PERMISSIONS                           -->
     <!-- ====================================================================== -->
@@ -2852,6 +2862,21 @@
         android:description="@string/permdesc_getPackageSize"
         android:protectionLevel="normal" />
 
+    <!-- Dummy user-facing group for faking package signature -->
+    <permission-group android:name="android.permission-group.FAKE_PACKAGE"
+        android:label="@string/permgrouplab_fake_package_signature"
+        android:description="@string/permgroupdesc_fake_package_signature"
+        android:request="@string/permgrouprequest_fake_package_signature"
+        android:priority="100" />
+
+    <!-- Allows an application to change the package signature as
+         seen by applications -->
+    <permission android:name="android.permission.FAKE_PACKAGE_SIGNATURE"
+        android:permissionGroup="android.permission-group.UNDEFINED"
+        android:protectionLevel="dangerous"
+        android:label="@string/permlab_fakePackageSignature"
+        android:description="@string/permdesc_fakePackageSignature" />
+
     <!-- @deprecated No longer useful, see
          {@link android.content.pm.PackageManager#addPackageToPreferred}
          for details. -->
@@ -4203,6 +4228,11 @@
     <permission android:name="android.permission.REGISTER_STATS_PULL_ATOM"
                 android:protectionLevel="signature|privileged" />
 
+    <!-- @hide Allows an application to reset the device battery statistics -->
+    <permission android:name="android.permission.RESET_BATTERY_STATS"
+        android:permissionGroup="android.permission-group.SYSTEM_TOOLS"
+        android:protectionLevel="signature|privileged" />
+
     <!-- @SystemApi Allows an application to control the backup and restore process.
     <p>Not for use by third-party applications.
          @hide pending API council -->
@@ -4392,6 +4422,13 @@
     <!-- @TestApi @hide Allows testing apk level rollbacks. -->
     <permission android:name="android.permission.TEST_MANAGE_ROLLBACKS"
         android:protectionLevel="signature" />
+
+    <!-- Allows an application to access the font manager
+         @hide -->
+    <permission android:name="android.permission.ACCESS_FONT_MANAGER"
+        android:label="@string/permlab_accessFontManager"
+        android:description="@string/permdesc_accessFontManager"
+        android:protectionLevel="signatureOrSystem" />
 
     <!-- @SystemApi @hide Allows an application to mark other applications as harmful -->
     <permission android:name="android.permission.SET_HARMFUL_APP_WARNINGS"

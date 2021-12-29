@@ -18,12 +18,14 @@ package com.android.keyguard;
 
 import android.app.ActivityManager;
 import android.app.IActivityManager;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Color;
 import android.os.Handler;
 import android.os.RemoteException;
 import android.os.UserHandle;
+import android.provider.Settings;
 import android.text.TextUtils;
 import android.text.format.DateFormat;
 import android.util.AttributeSet;
@@ -40,7 +42,9 @@ import androidx.core.graphics.ColorUtils;
 import com.android.internal.widget.LockPatternUtils;
 import com.android.systemui.Dependency;
 import com.android.systemui.R;
+import com.android.systemui.omni.CurrentWeatherView;
 import com.android.systemui.statusbar.policy.ConfigurationController;
+import com.android.systemui.tuner.TunerService;
 
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
@@ -48,7 +52,7 @@ import java.util.Locale;
 import java.util.TimeZone;
 
 public class KeyguardStatusView extends GridLayout implements
-        ConfigurationController.ConfigurationListener {
+        ConfigurationController.ConfigurationListener, TunerService.Tunable {
     private static final boolean DEBUG = KeyguardConstants.DEBUG;
     private static final String TAG = "KeyguardStatusView";
     private static final int MARQUEE_DELAY_MS = 2000;
@@ -68,6 +72,14 @@ public class KeyguardStatusView extends GridLayout implements
     private boolean mPulsing;
     private float mDarkAmount = 0;
     private int mTextColor;
+    private CurrentWeatherView mWeatherView;
+    private boolean mShowWeather;
+    private boolean mPixelStyle;
+
+    private static final String LOCKSCREEN_WEATHER_ENABLED =
+            "system:" + Settings.System.LOCKSCREEN_WEATHER_ENABLED;
+    private static final String LOCKSCREEN_WEATHER_STYLE =
+            "system:" + Settings.System.LOCKSCREEN_WEATHER_STYLE;
 
     /**
      * Bottom margin that defines the margin between bottom of smart space and top of notification
@@ -96,6 +108,7 @@ public class KeyguardStatusView extends GridLayout implements
                 refreshTime();
                 updateOwnerInfo();
                 updateLogoutView();
+                updateWeatherView();
             }
         }
 
@@ -114,6 +127,7 @@ public class KeyguardStatusView extends GridLayout implements
             refreshFormat();
             updateOwnerInfo();
             updateLogoutView();
+            updateWeatherView();
         }
 
         @Override
@@ -135,6 +149,9 @@ public class KeyguardStatusView extends GridLayout implements
         mIActivityManager = ActivityManager.getService();
         mLockPatternUtils = new LockPatternUtils(getContext());
         mHandler = new Handler();
+        final TunerService tunerService = Dependency.get(TunerService.class);
+        tunerService.addTunable(this, LOCKSCREEN_WEATHER_ENABLED);
+        tunerService.addTunable(this, LOCKSCREEN_WEATHER_STYLE);
         onDensityOrFontScaleChanged();
     }
 
@@ -188,11 +205,10 @@ public class KeyguardStatusView extends GridLayout implements
 
         mClockView = findViewById(R.id.keyguard_clock_container);
         mClockView.setShowCurrentUserTime(true);
-        if (KeyguardClockAccessibilityDelegate.isNeeded(mContext)) {
-            mClockView.setAccessibilityDelegate(new KeyguardClockAccessibilityDelegate(mContext));
-        }
         mOwnerInfo = findViewById(R.id.owner_info);
         mKeyguardSlice = findViewById(R.id.keyguard_status_area);
+
+        mWeatherView = (CurrentWeatherView) findViewById(R.id.weather_container);
         mTextColor = mClockView.getCurrentTextColor();
 
         mKeyguardSlice.setContentChangeListener(this::onSliceContentChanged);
@@ -204,6 +220,7 @@ public class KeyguardStatusView extends GridLayout implements
         updateOwnerInfo();
         updateLogoutView();
         updateDark();
+        updateWeatherView();
     }
 
     /**
@@ -242,6 +259,9 @@ public class KeyguardStatusView extends GridLayout implements
         if (mOwnerInfo != null) {
             mOwnerInfo.setTextSize(TypedValue.COMPLEX_UNIT_PX,
                     getResources().getDimensionPixelSize(R.dimen.widget_label_font_size));
+        }
+        if (mWeatherView != null) {
+            mWeatherView.onDensityOrFontScaleChanged();
         }
         loadBottomMargin();
     }
@@ -378,10 +398,6 @@ public class KeyguardStatusView extends GridLayout implements
 
             clockView24 = DateFormat.getBestDateTimePattern(locale, clockView24Skel);
 
-            // Use fancy colon.
-            clockView24 = clockView24.replace(':', '\uee01');
-            clockView12 = clockView12.replace(':', '\uee01');
-
             cacheKey = key;
         }
     }
@@ -452,6 +468,34 @@ public class KeyguardStatusView extends GridLayout implements
             mIActivityManager.stopUser(currentUserId, true /*force*/, null);
         } catch (RemoteException re) {
             Log.e(TAG, "Failed to logout user", re);
+        }
+    }
+
+    @Override
+    public void onTuningChanged(String key, String newValue) {
+        switch (key) {
+            case LOCKSCREEN_WEATHER_ENABLED:
+                mShowWeather =
+                        TunerService.parseIntegerSwitch(newValue, false);
+                updateWeatherView();
+                break;
+            case LOCKSCREEN_WEATHER_STYLE:
+                mPixelStyle =
+                        TunerService.parseIntegerSwitch(newValue, false);
+                updateWeatherView();
+                break;
+            default:
+                break;
+        }
+    }
+
+    public void updateWeatherView() {
+        if (mWeatherView != null) {
+            if (mShowWeather && (!mPixelStyle || mKeyguardSlice.getVisibility() != View.VISIBLE)) {
+                mWeatherView.enableUpdates();
+            } else if (!mShowWeather || mPixelStyle) {
+                mWeatherView.disableUpdates();
+            }
         }
     }
 }

@@ -741,6 +741,9 @@ public class NavigationBarView extends FrameLayout implements
         } else if (pinningActive) {
             disableBack = disableRecent = false;
         }
+        if (pinningActive && isGesturalMode(mNavBarMode)){
+            disableBack = true;
+        }
 
         ViewGroup navButtons = getCurrentView().findViewById(R.id.nav_buttons);
         if (navButtons != null) {
@@ -926,6 +929,11 @@ public class NavigationBarView extends FrameLayout implements
         } else {
             mRegionSamplingHelper.stop();
         }
+    }
+
+    @Override
+    public void onSettingsChanged() {
+        mEdgeBackGestureHandler.onSettingsChanged();
     }
 
     public void setAccessibilityButtonState(final boolean visible, final boolean longClickable) {

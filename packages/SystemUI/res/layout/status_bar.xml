@@ -116,7 +116,6 @@
             android:orientation="horizontal"
             android:gravity="center_vertical|end"
             >
-
             <include layout="@layout/system_icons" />
         </com.android.keyguard.AlphaOptimizedLinearLayout>
     </LinearLayout>
@@ -162,5 +161,11 @@
         android:layout_height="match_parent"
         android:layout="@layout/emergency_cryptkeeper_text"
     />
+
+    <com.android.systemui.sakura.batterybar.BatteryBarController
+        android:id="@+id/battery_bar"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        systemui:viewLocation="1" />
 
 </com.android.systemui.statusbar.phone.PhoneStatusBarView>

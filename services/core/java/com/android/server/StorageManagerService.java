@@ -1400,12 +1400,13 @@ class StorageManagerService extends IStorageManager.Stub
                     final int oldState = vol.state;
                     final int newState = state;
                     vol.state = newState;
+                    final VolumeInfo vInfo = vol.clone();
                     final SomeArgs args = SomeArgs.obtain();
-                    args.arg1 = vol;
+                    args.arg1 = vInfo;
                     args.arg2 = oldState;
                     args.arg3 = newState;
                     mHandler.obtainMessage(H_VOLUME_STATE_CHANGED, args).sendToTarget();
-                    onVolumeStateChangedLocked(vol, oldState, newState);
+                    onVolumeStateChangedLocked(vInfo, oldState, newState);
                 }
             }
         }
@@ -2350,8 +2351,10 @@ class StorageManagerService extends IStorageManager.Stub
                     final long destroy = extras.getLong("destroy");
 
                     final DropBoxManager dropBox = mContext.getSystemService(DropBoxManager.class);
-                    dropBox.addText(TAG_STORAGE_BENCHMARK, scrubPath(path)
-                            + " " + ident + " " + create + " " + run + " " + destroy);
+                    if (dropBox != null) {
+                        dropBox.addText(TAG_STORAGE_BENCHMARK, scrubPath(path)
+                                + " " + ident + " " + create + " " + run + " " + destroy);
+                    }
 
                     synchronized (mLock) {
                         final VolumeRecord rec = findRecordForPath(path);
@@ -2513,7 +2516,9 @@ class StorageManagerService extends IStorageManager.Stub
                         final long time = extras.getLong("time");
 
                         final DropBoxManager dropBox = mContext.getSystemService(DropBoxManager.class);
-                        dropBox.addText(TAG_STORAGE_TRIM, scrubPath(path) + " " + bytes + " " + time);
+                        if (dropBox != null) {
+                           dropBox.addText(TAG_STORAGE_TRIM, scrubPath(path) + " " + bytes + " " + time);
+                        }
 
                         synchronized (mLock) {
                             final VolumeRecord rec = findRecordForPath(path);
@@ -3320,6 +3325,12 @@ class StorageManagerService extends IStorageManager.Stub
         enforcePermission(android.Manifest.permission.STORAGE_INTERNAL);
 
         if (isFsEncrypted) {
+            // When a user has secure lock screen, require secret to actually unlock.
+            // This check is mostly in place for emulation mode.
+            if (StorageManager.isFileEncryptedEmulatedOnly() &&
+                mLockPatternUtils.isSecure(userId) && ArrayUtils.isEmpty(secret)) {
+                throw new IllegalStateException("Secret required to unlock secure user " + userId);
+            }
             try {
                 mVold.unlockUserKey(userId, serialNumber, encodeBytes(token),
                         encodeBytes(secret));

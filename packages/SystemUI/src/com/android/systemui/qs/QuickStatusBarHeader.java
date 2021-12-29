@@ -66,6 +66,7 @@ import com.android.systemui.DualToneHandler;
 import com.android.systemui.Interpolators;
 import com.android.systemui.R;
 import com.android.systemui.broadcast.BroadcastDispatcher;
+import com.android.systemui.dump.DumpManager;
 import com.android.systemui.plugins.ActivityStarter;
 import com.android.systemui.plugins.DarkIconDispatcher;
 import com.android.systemui.plugins.DarkIconDispatcher.DarkReceiver;
@@ -77,7 +78,9 @@ import com.android.systemui.privacy.PrivacyItemController;
 import com.android.systemui.qs.QSDetail.Callback;
 import com.android.systemui.qs.carrier.QSCarrierGroup;
 import com.android.systemui.settings.BrightnessController;
+import com.android.systemui.statusbar.BlurUtils;
 import com.android.systemui.statusbar.CommandQueue;
+import com.android.systemui.statusbar.info.DataUsageView;
 import com.android.systemui.statusbar.phone.StatusBarIconController;
 import com.android.systemui.statusbar.phone.StatusBarIconController.TintedIconManager;
 import com.android.systemui.statusbar.phone.StatusBarWindowView;
@@ -120,11 +123,14 @@ public class QuickStatusBarHeader extends RelativeLayout implements
             "lineagesecure:" + LineageSettings.Secure.QS_SHOW_AUTO_BRIGHTNESS;
     private static final String QS_SHOW_BRIGHTNESS_SLIDER =
             "lineagesecure:" + LineageSettings.Secure.QS_SHOW_BRIGHTNESS_SLIDER;
+    public static final String STATUS_BAR_CUSTOM_HEADER =
+            "system:" + Settings.System.STATUS_BAR_CUSTOM_HEADER;
 
     private final NextAlarmController mAlarmController;
     private final ZenModeController mZenController;
     private final StatusBarIconController mStatusBarIconController;
     private final ActivityStarter mActivityStarter;
+    private final BlurUtils mBlurUtils;
 
     private QSPanel mQsPanel;
 
@@ -149,6 +155,11 @@ public class QuickStatusBarHeader extends RelativeLayout implements
     private int mRingerMode = AudioManager.RINGER_MODE_NORMAL;
     private AlarmManager.AlarmClockInfo mNextAlarm;
 
+    // Data Usage
+    private View mDataUsageLayout;
+    private ImageView mDataUsageImage;
+    private DataUsageView mDataUsageView;
+
     private ImageView mNextAlarmIcon;
     /** {@link TextView} containing the actual text indicating when the next alarm will go off. */
     private TextView mNextAlarmTextView;
@@ -166,6 +177,8 @@ public class QuickStatusBarHeader extends RelativeLayout implements
     private boolean mAllIndicatorsEnabled;
     private boolean mMicCameraIndicatorsEnabled;
     private BroadcastDispatcher mBroadcastDispatcher;
+    private boolean mLandscape;
+    private boolean mHeaderImageEnabled;
 
     private PrivacyItemController mPrivacyItemController;
     private final UiEventLogger mUiEventLogger;
@@ -238,6 +251,7 @@ public class QuickStatusBarHeader extends RelativeLayout implements
         mRingerModeTracker = ringerModeTracker;
         mUiEventLogger = uiEventLogger;
         mBroadcastDispatcher = broadcastDispatcher;
+        mBlurUtils = new BlurUtils(mContext.getResources(), new DumpManager());
     }
 
     @Override
@@ -275,8 +289,6 @@ public class QuickStatusBarHeader extends RelativeLayout implements
         mCarrierGroup = findViewById(R.id.carrier_group);
 
 
-        updateResources();
-
         Rect tintArea = new Rect(0, 0, 0, 0);
         int colorForeground = Utils.getColorAttrDefaultColor(getContext(),
                 android.R.attr.colorForeground);
@@ -294,6 +306,15 @@ public class QuickStatusBarHeader extends RelativeLayout implements
         mClockView = findViewById(R.id.clock);
         mClockView.setOnClickListener(this);
         mDateView = findViewById(R.id.date);
+        mDateView.setOnClickListener(this);
+
+        mDataUsageLayout = findViewById(R.id.daily_data_usage_layout);
+        mDataUsageImage = findViewById(R.id.daily_data_usage_icon);
+        mDataUsageView = findViewById(R.id.data_sim_usage);
+
+        updateDataUsageImage();
+        // Set the correct tint for the data usage icons so they contrast
+        mDataUsageImage.setImageTintList(ColorStateList.valueOf(fillColor));
         mSpace = findViewById(R.id.space);
 
         // Tint for the battery icons are handled in setupHost()
@@ -304,13 +325,17 @@ public class QuickStatusBarHeader extends RelativeLayout implements
         mBatteryRemainingIcon.setOnClickListener(this);
         mRingerModeTextView.setSelected(true);
         mNextAlarmTextView.setSelected(true);
+        updateSettings();
 
         mAllIndicatorsEnabled = mPrivacyItemController.getAllIndicatorsAvailable();
         mMicCameraIndicatorsEnabled = mPrivacyItemController.getMicCameraAvailable();
 
+        updateResources();
+
         Dependency.get(TunerService.class).addTunable(this,
                 StatusBarIconController.ICON_BLACKLIST,
-                QS_SHOW_AUTO_BRIGHTNESS, QS_SHOW_BRIGHTNESS_SLIDER);
+                QS_SHOW_AUTO_BRIGHTNESS, QS_SHOW_BRIGHTNESS_SLIDER,
+                STATUS_BAR_CUSTOM_HEADER);
     }
 
     public QuickQSPanel getHeaderQsPanel() {
@@ -410,12 +435,8 @@ public class QuickStatusBarHeader extends RelativeLayout implements
     @Override
     protected void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
+        mLandscape = newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE;
         updateResources();
-
-        // Update color schemes in landscape to use wallpaperTextColor
-        boolean shouldUseWallpaperTextColor =
-                newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE;
-        mClockView.useWallpaperTextColor(shouldUseWallpaperTextColor);
     }
 
     @Override
@@ -440,6 +461,10 @@ public class QuickStatusBarHeader extends RelativeLayout implements
                     + mContext.getResources().getDimensionPixelSize(
                     R.dimen.qs_tile_margin_top);
         }
+        if (mHeaderImageEnabled) {
+            qqsHeight += mContext.getResources().getDimensionPixelSize(
+                    R.dimen.qs_header_image_offset);
+        }
 
         setMinimumHeight(sbHeight + qqsHeight);
     }
@@ -457,8 +482,11 @@ public class QuickStatusBarHeader extends RelativeLayout implements
                 resources.getDimensionPixelSize(R.dimen.qs_header_tooltip_height);
         mHeaderTextContainerView.setLayoutParams(mHeaderTextContainerView.getLayoutParams());
 
-        mSystemIconsView.getLayoutParams().height = resources.getDimensionPixelSize(
-                com.android.internal.R.dimen.quick_qs_offset_height);
+        int topMargin = resources.getDimensionPixelSize(
+                com.android.internal.R.dimen.quick_qs_offset_height) + (mHeaderImageEnabled ?
+                resources.getDimensionPixelSize(R.dimen.qs_header_image_offset) : 0);
+
+        mSystemIconsView.getLayoutParams().height = topMargin;
         mSystemIconsView.setLayoutParams(mSystemIconsView.getLayoutParams());
 
         if (mIsQuickQsBrightnessEnabled) {
@@ -475,8 +503,7 @@ public class QuickStatusBarHeader extends RelativeLayout implements
 
         ViewGroup.LayoutParams lp = getLayoutParams();
         if (mQsDisabled) {
-            lp.height = resources.getDimensionPixelSize(
-                    com.android.internal.R.dimen.quick_qs_offset_height);
+            lp.height = topMargin;
         } else {
             lp.height = WRAP_CONTENT;
         }
@@ -485,6 +512,46 @@ public class QuickStatusBarHeader extends RelativeLayout implements
         updateStatusIconAlphaAnimator();
         updateHeaderTextContainerAlphaAnimator();
         updatePrivacyChipAlphaAnimator();
+
+        boolean shouldUseWallpaperTextColor = mLandscape && !mHeaderImageEnabled;
+        mClockView.useWallpaperTextColor(shouldUseWallpaperTextColor);
+    }
+
+    public void updateSettings() {
+        updateDataUsageView();
+        updateDataUsageImage();
+    }
+
+    private void updateDataUsageView() {
+        if (mDataUsageView.isDataUsageEnabled() != 0) {
+            if (com.android.internal.util.sakura.Utils.isConnected(mContext)) {
+                DataUsageView.updateUsage();
+                mDataUsageLayout.setVisibility(View.VISIBLE);
+                mDataUsageImage.setVisibility(View.VISIBLE);
+                mDataUsageView.setVisibility(View.VISIBLE);
+            } else {
+                mDataUsageView.setVisibility(View.GONE);
+                mDataUsageImage.setVisibility(View.GONE);
+                mDataUsageLayout.setVisibility(View.GONE);
+            }
+        } else {
+            mDataUsageView.setVisibility(View.GONE);
+            mDataUsageImage.setVisibility(View.GONE);
+            mDataUsageLayout.setVisibility(View.GONE);
+        }
+    }
+
+    public void updateDataUsageImage() {
+        if (mDataUsageView.isDataUsageEnabled() == 0) {
+            mDataUsageImage.setVisibility(View.GONE);
+        } else {
+            if (com.android.internal.util.sakura.Utils.isWiFiConnected(mContext)) {
+                mDataUsageImage.setImageDrawable(mContext.getDrawable(R.drawable.ic_data_usage_wifi));
+            } else {
+                mDataUsageImage.setImageDrawable(mContext.getDrawable(R.drawable.ic_data_usage_cellular));
+            }
+            mDataUsageImage.setVisibility(View.VISIBLE);
+        }
     }
 
     private void updateStatusIconAlphaAnimator() {
@@ -510,6 +577,7 @@ public class QuickStatusBarHeader extends RelativeLayout implements
         mExpanded = expanded;
         mHeaderQsPanel.setExpanded(expanded);
         updateEverything();
+        updateDataUsageView();
     }
 
     /**
@@ -528,6 +596,10 @@ public class QuickStatusBarHeader extends RelativeLayout implements
         }
 
         if (forceExpanded) {
+            if (mBlurUtils.supportsBlursOnWindows()) {
+                mBlurUtils.applyBlur(getViewRootImpl(),
+                        mBlurUtils.blurRadiusOfRatio(expansionFraction));
+            }
             // If the keyguard is showing, we want to offset the text so that it comes in at the
             // same time as the panel as it slides down.
             mHeaderTextContainerView.setTranslationY(panelTranslationY);
@@ -834,15 +906,22 @@ public class QuickStatusBarHeader extends RelativeLayout implements
 
     @Override
     public void onTuningChanged(String key, String newValue) {
-        if (QS_SHOW_BRIGHTNESS_SLIDER.equals(key)) {
-            mIsQuickQsBrightnessEnabled = TunerService.parseInteger(newValue, 0) > 1;
-            updateResources();
-        } else if (QS_SHOW_AUTO_BRIGHTNESS.equals(key)) {
-            mIsQsAutoBrightnessEnabled = TunerService.parseIntegerSwitch(newValue, true);
-            updateResources();
-        } else if (StatusBarIconController.ICON_BLACKLIST.equals(key)) {
-            mClockView.setClockVisibleByUser(!StatusBarIconController.getIconBlacklist(
-                    mContext, newValue).contains("clock"));
+        switch (key) {
+            case QS_SHOW_BRIGHTNESS_SLIDER:
+                mIsQuickQsBrightnessEnabled = TunerService.parseInteger(newValue, 0) > 1;
+                updateResources();
+                break;
+            case QS_SHOW_AUTO_BRIGHTNESS:
+                mIsQsAutoBrightnessEnabled = TunerService.parseIntegerSwitch(newValue, true);
+                updateResources();
+                break;
+            case STATUS_BAR_CUSTOM_HEADER:
+                mHeaderImageEnabled =
+                        TunerService.parseIntegerSwitch(newValue, false);
+                updateResources();
+                break;
+            default:
+                break;
         }
     }
 }

@@ -16,16 +16,12 @@ package com.android.systemui.statusbar.phone;
 
 import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
 import static android.view.WindowManagerPolicyConstants.NAV_BAR_MODE_3BUTTON;
-import static android.view.WindowManagerPolicyConstants.NAV_BAR_MODE_GESTURAL;
 
 import android.annotation.Nullable;
-import android.app.ActivityManager;
 import android.content.Context;
-import android.content.om.IOverlayManager;
 import android.content.res.Configuration;
 import android.graphics.drawable.Icon;
-import android.os.RemoteException;
-import android.os.ServiceManager;
+import android.provider.Settings;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.util.SparseArray;
@@ -46,8 +42,6 @@ import com.android.systemui.statusbar.phone.ReverseLinearLayout.ReverseRelativeL
 import com.android.systemui.statusbar.policy.KeyButtonView;
 import com.android.systemui.tuner.TunerService;
 
-import lineageos.providers.LineageSettings;
-
 import java.io.PrintWriter;
 import java.util.Objects;
 
@@ -56,10 +50,8 @@ public class NavigationBarInflaterView extends FrameLayout
 
     private static final String TAG = "NavBarInflater";
 
-    public static final String NAV_BAR_VIEWS = "sysui_nav_bar";
     public static final String NAV_BAR_LEFT = "sysui_nav_bar_left";
     public static final String NAV_BAR_RIGHT = "sysui_nav_bar_right";
-    public static final String NAV_BAR_INVERSE = "sysui_nav_bar_inverse";
 
     public static final String MENU_IME_ROTATE = "menu_ime";
     public static final String BACK = "back";
@@ -88,10 +80,10 @@ public class NavigationBarInflaterView extends FrameLayout
     private static final String ABSOLUTE_SUFFIX = "A";
     private static final String ABSOLUTE_VERTICAL_CENTERED_SUFFIX = "C";
 
-    private static final String KEY_NAVIGATION_HINT =
-            "lineagesystem:" + LineageSettings.System.NAVIGATION_BAR_HINT;
-    private static final String OVERLAY_NAVIGATION_HIDE_HINT =
-            "org.lineageos.overlay.customization.navbar.nohint";
+    public static final String NAVBAR_LAYOUT_VIEWS =
+            Settings.Secure.NAVBAR_LAYOUT_VIEWS;
+    private static final String NAVBAR_INVERSE_LAYOUT =
+            Settings.Secure.NAVBAR_INVERSE_LAYOUT;
 
     protected LayoutInflater mLayoutInflater;
     protected LayoutInflater mLandscapeInflater;
@@ -108,12 +100,12 @@ public class NavigationBarInflaterView extends FrameLayout
 
     private boolean mIsVertical;
     private boolean mAlternativeOrder;
+    private boolean mUsingCustomLayout;
 
     private OverviewProxyService mOverviewProxyService;
     private int mNavBarMode = NAV_BAR_MODE_3BUTTON;
 
     private boolean mInverseLayout;
-    private boolean mIsHintEnabled;
 
     public NavigationBarInflaterView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -156,23 +148,20 @@ public class NavigationBarInflaterView extends FrameLayout
                 : mOverviewProxyService.shouldShowSwipeUpUI()
                         ? R.string.config_navBarLayoutQuickstep
                         : R.string.config_navBarLayout;
-        if (!mIsHintEnabled && defaultResource == R.string.config_navBarLayoutHandle) {
-            return getContext().getString(defaultResource).replace(HOME_HANDLE, "");
-        }
         return getContext().getString(defaultResource);
     }
 
     @Override
     public void onNavigationModeChanged(int mode) {
         mNavBarMode = mode;
-        updateHint();
+        onLikelyDefaultLayoutChange();
     }
 
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
-        Dependency.get(TunerService.class).addTunable(this, NAV_BAR_INVERSE);
-        Dependency.get(TunerService.class).addTunable(this, KEY_NAVIGATION_HINT);
+        Dependency.get(TunerService.class).addTunable(this, NAVBAR_LAYOUT_VIEWS);
+        Dependency.get(TunerService.class).addTunable(this, NAVBAR_INVERSE_LAYOUT);
     }
 
     @Override
@@ -184,13 +173,17 @@ public class NavigationBarInflaterView extends FrameLayout
 
     @Override
     public void onTuningChanged(String key, String newValue) {
-        if (NAV_BAR_INVERSE.equals(key)) {
-            mInverseLayout = TunerService.parseIntegerSwitch(newValue, false);
-            updateLayoutInversion();
-        } else if (KEY_NAVIGATION_HINT.equals(key)) {
-            mIsHintEnabled = TunerService.parseIntegerSwitch(newValue, true);
-            updateHint();
-            onLikelyDefaultLayoutChange();
+        switch (key) {
+            case NAVBAR_LAYOUT_VIEWS:
+                if (newValue != null)
+                    setNavigationBarLayout(newValue);
+                break;
+            case NAVBAR_INVERSE_LAYOUT:
+                mInverseLayout = TunerService.parseIntegerSwitch(newValue, false);
+                updateLayoutInversion();
+                break;
+            default:
+                break;
         }
     }
 
@@ -200,7 +193,17 @@ public class NavigationBarInflaterView extends FrameLayout
         updateLayoutInversion();
     }
 
+    public void setNavigationBarLayout(String layoutValue) {
+        if (!Objects.equals(mCurrentLayout, layoutValue)) {
+            mUsingCustomLayout = layoutValue != null;
+            clearViews();
+            inflateLayout(layoutValue);
+        }
+    }
+
     public void onLikelyDefaultLayoutChange() {
+        // Don't override custom layouts
+        if (mUsingCustomLayout) return;
 
         // Reevaluate new layout
         final String newValue = getDefaultLayout();
@@ -250,24 +253,6 @@ public class NavigationBarInflaterView extends FrameLayout
     private void updateAlternativeOrder(View v) {
         if (v instanceof ReverseLinearLayout) {
             ((ReverseLinearLayout) v).setAlternativeOrder(mAlternativeOrder);
-        }
-    }
-
-    private void updateHint() {
-        final IOverlayManager iom = IOverlayManager.Stub.asInterface(
-                ServiceManager.getService(Context.OVERLAY_SERVICE));
-        final boolean state = mNavBarMode == NAV_BAR_MODE_GESTURAL && !mIsHintEnabled;
-        final int userId = ActivityManager.getCurrentUser();
-        try {
-            iom.setEnabled(OVERLAY_NAVIGATION_HIDE_HINT, state, userId);
-            if (state) {
-                // As overlays are also used to apply navigation mode, it is needed to set
-                // our customization overlay to highest priority to ensure it is applied.
-                iom.setHighestPriority(OVERLAY_NAVIGATION_HIDE_HINT, userId);
-            }
-        } catch (RemoteException | IllegalArgumentException e) {
-            Log.e(TAG, "Failed to " + (state ? "enable" : "disable")
-                    + " overlay " + OVERLAY_NAVIGATION_HIDE_HINT + " for user " + userId);
         }
     }
 

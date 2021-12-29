@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     Copyright (C) 2020-2021 Project Sakura
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+-->
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <!-- Gaming mode -->
+    <string name="notification_channel_gaming">Mode Permainan</string>
+    <string name="gaming_mode_notification_title">Mode Permainan diaktifkan</string>
+    <string name="gaming_mode_notification_content">Ketuk untuk mematikan Mode Permainan</string>
+    <string name="gaming_mode_enabled_toast">Mode Permainan diaktifkan</string>
+    <string name="gaming_mode_disabled_toast">Mode Permainan dinonaktifkan</string>
+    <!-- Button that copies the url to the log of a crashed application -->
+    <string name="aerr_copy">Salin URL riwayat kerusakan</string>
+    <string name="url_copy_success">URL berhasil disalin</string>
+    <string name="url_copy_failed">Terjadi kesalahan saat mengunggah log ke Hastebin</string>
+    <!-- Clipboard access toast -->
+    <string name="app_clipboard_access_denied">%1$s ditolak akses ke clipboard</string>
+    <string name="app_clipboard_access_granted">%1$s diberi akses ke clipboard</string>
+    <!-- [CHAR LIMIT=NONE] Title of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
+    <string name="permlab_accessFontManager">akses pengelola font</string>
+    <!-- [CHAR LIMIT=NONE] Description of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
+    <string name="permdesc_accessFontManager">Izinkan aplikasi untuk mengakses pengelola font.</string>
+    <!-- [CHAR LIMIT=NONE] Error when a package is installed but got the missing fonts.xml file, notifying the user why it isn't showing up. -->
+    <string name="fontservice_incompatible_font">Paket font yang Anda pasang tidak kompatibel dikarenakan hilangnya fonts.xml dalam berkasnya. Harap hubungi pengembang berkas font untuk dukungan.</string>
+</resources>

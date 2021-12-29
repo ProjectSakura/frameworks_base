@@ -20,6 +20,7 @@ import static com.android.systemui.DejankUtils.whitelistIpcs;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
+import android.animation.ValueAnimator;
 import android.app.admin.DevicePolicyManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -37,6 +38,7 @@ import android.os.Message;
 import android.os.RemoteException;
 import android.os.UserHandle;
 import android.os.UserManager;
+import android.provider.Settings;
 import android.text.TextUtils;
 import android.text.format.Formatter;
 import android.util.Log;
@@ -44,6 +46,8 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.Nullable;
+
+import com.airbnb.lottie.LottieAnimationView;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.app.IBatteryStats;
@@ -97,6 +101,7 @@ public class KeyguardIndicationController implements StateListener,
     private ViewGroup mIndicationArea;
     private KeyguardIndicationTextView mTextView;
     private KeyguardIndicationTextView mDisclosure;
+    private LottieAnimationView mChargingIndicationView;
     private final IBatteryStats mBatteryInfo;
     private final SettableWakeLock mWakeLock;
     private final DockManager mDockManager;
@@ -126,6 +131,9 @@ public class KeyguardIndicationController implements StateListener,
     private boolean mBatteryPresent = true;
     private long mChargingTimeRemaining;
     private float mDisclosureMaxAlpha;
+    private int mChargingCurrent;
+    private double mChargingVoltage;
+    private float mTemperature;
     private String mMessageToShowOnScreenOn;
 
     private KeyguardUpdateMonitorCallback mUpdateMonitorCallback;
@@ -178,6 +186,8 @@ public class KeyguardIndicationController implements StateListener,
         mTextView = indicationArea.findViewById(R.id.keyguard_indication_text);
         mInitialTextColorState = mTextView != null ?
                 mTextView.getTextColors() : ColorStateList.valueOf(Color.WHITE);
+        mChargingIndicationView = (LottieAnimationView) indicationArea.findViewById(
+                R.id.charging_indication);
         mDisclosure = indicationArea.findViewById(R.id.keyguard_indication_enterprise_disclosure);
         mDisclosureMaxAlpha = mDisclosure.getAlpha();
         updateIndication(false /* animate */);
@@ -425,6 +435,7 @@ public class KeyguardIndicationController implements StateListener,
                         .format(mBatteryLevel / 100f);
                 mTextView.switchIndication(percentage);
             }
+            mChargingIndicationView.setVisibility(View.GONE);
             return;
         }
 
@@ -482,8 +493,19 @@ public class KeyguardIndicationController implements StateListener,
         if (hideIndication) {
             mIndicationArea.setVisibility(View.GONE);
         }
+        updateChargingIndication();
     }
 
+    // charging lottie animation indicator
+    private void updateChargingIndication() {
+        if (!mDozing && mPowerPluggedIn) {
+            mChargingIndicationView.setVisibility(View.VISIBLE);
+            mChargingIndicationView.playAnimation();
+        } else {
+            mChargingIndicationView.setVisibility(View.GONE);
+        }
+    }
+    
     // animates textView - textView moves up and bounces down
     private void animateText(KeyguardIndicationTextView textView, String indication) {
         int yTranslation = mContext.getResources().getInteger(
@@ -556,6 +578,21 @@ public class KeyguardIndicationController implements StateListener,
                             ? R.string.keyguard_indication_charging_time_fast
                             : R.string.keyguard_plugged_in_charging_fast;
                     break;
+                case BatteryStatus.CHARGING_DASH:
+                    chargingId = hasChargingTime
+                            ? R.string.keyguard_indication_dash_charging_time
+                            : R.string.keyguard_plugged_in_dash_charging;
+                    break;
+                case BatteryStatus.CHARGING_WARP:
+                    chargingId = hasChargingTime
+                            ? R.string.keyguard_indication_warp_charging_time
+                            : R.string.keyguard_plugged_in_warp_charging;
+                    break;
+                case BatteryStatus.CHARGING_VOOC:
+                    chargingId = hasChargingTime
+                            ? R.string.keyguard_indication_vooc_charging_time
+                            : R.string.keyguard_plugged_in_vooc_charging;
+                    break;
                 case BatteryStatus.CHARGING_SLOWLY:
                     chargingId = hasChargingTime
                             ? R.string.keyguard_indication_charging_time_slowly
@@ -573,6 +610,26 @@ public class KeyguardIndicationController implements StateListener,
                     : R.string.keyguard_plugged_in_wireless;
         }
 
+        String batteryInfo = "";
+        boolean showbatteryInfo = Settings.System.getIntForUser(mContext.getContentResolver(),
+            Settings.System.LOCKSCREEN_BATTERY_INFO, 1, UserHandle.USER_CURRENT) == 1;
+         if (showbatteryInfo) {
+            if (mChargingCurrent > 0) {
+                batteryInfo = batteryInfo + (mChargingCurrent / 1000) + "mA";
+            }
+            if (mChargingVoltage > 0) {
+                batteryInfo = (batteryInfo == "" ? "" : batteryInfo + " · ") +
+                        String.format("%.1f", (mChargingVoltage / 1000 / 1000)) + "V";
+            }
+            if (mTemperature > 0) {
+                batteryInfo = (batteryInfo == "" ? "" : batteryInfo + " · ") +
+                        mTemperature / 10 + "°C";
+            }
+            if (batteryInfo != "") {
+                batteryInfo = "\n" + batteryInfo;
+            }
+        }
+
         if (hasChargingTime) {
             // We now have battery percentage in these strings and it's expected that all
             // locales will also have it in the future. For now, we still have to support the old
@@ -580,17 +637,21 @@ public class KeyguardIndicationController implements StateListener,
             String chargingTimeFormatted = Formatter.formatShortElapsedTimeRoundingUpToMinutes(
                     mContext, mChargingTimeRemaining);
             try {
-                return mContext.getResources().getString(chargingId, chargingTimeFormatted,
+                String chargingText = mContext.getResources().getString(chargingId, chargingTimeFormatted,
                         percentage);
+                return chargingText + batteryInfo;
             } catch (IllegalFormatConversionException e) {
-                return mContext.getResources().getString(chargingId, chargingTimeFormatted);
+                String chargingText =  mContext.getResources().getString(chargingId, chargingTimeFormatted);
+                return chargingText + batteryInfo;
             }
         } else {
             // Same as above
             try {
-                return mContext.getResources().getString(chargingId, percentage);
+                String chargingText =  mContext.getResources().getString(chargingId, percentage);
+                return chargingText + batteryInfo;
             } catch (IllegalFormatConversionException e) {
-                return mContext.getResources().getString(chargingId);
+                String chargingText =  mContext.getResources().getString(chargingId);
+                return chargingText + batteryInfo;
             }
         }
     }
@@ -700,8 +761,11 @@ public class KeyguardIndicationController implements StateListener,
             mPowerPluggedInWired = status.isPluggedInWired() && isChargingOrFull;
             mPowerPluggedIn = status.isPluggedIn() && isChargingOrFull;
             mPowerCharged = status.isCharged();
+            mChargingCurrent = status.maxChargingCurrent;
+            mChargingVoltage = status.maxChargingVoltage;
             mChargingWattage = status.maxChargingWattage;
             mChargingSpeed = status.getChargingSpeed(mContext);
+            mTemperature = status.temperature;
             mBatteryLevel = status.level;
             mBatteryOverheated = status.isOverheated();
             mEnableBatteryDefender = mBatteryOverheated && status.isPluggedIn();

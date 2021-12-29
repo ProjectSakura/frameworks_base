@@ -344,7 +344,11 @@ public class Camera {
         if (cameraId >= getNumberOfCameras()) {
             throw new RuntimeException("Unknown camera ID");
         }
-        _getCameraInfo(cameraId, cameraInfo);
+        try {
+            _getCameraInfo(cameraId, cameraInfo);
+        } catch (RuntimeException e) {
+            Log.e(TAG, "Lock screen is disabled, facelock can't get camera info");
+        }
         IBinder b = ServiceManager.getService(Context.AUDIO_SERVICE);
         IAudioService audioService = IAudioService.Stub.asInterface(b);
         try {
@@ -4675,6 +4679,7 @@ public class Camera {
             splitter.setString(str);
             int index = 0;
             for (String s : splitter) {
+                s = s.replaceAll("\\s","");
                 output[index++] = Integer.parseInt(s);
             }
         }
@@ -4745,7 +4750,7 @@ public class Camera {
         // Example string: "(10000,26623),(10000,30000)". Return null if the
         // passing string is null or the size is 0.
         private ArrayList<int[]> splitRange(String str) {
-            if (str == null || str.charAt(0) != '('
+            if (str == null || str.isEmpty() || str.charAt(0) != '('
                     || str.charAt(str.length() - 1) != ')') {
                 Log.e(TAG, "Invalid range list string=" + str);
                 return null;
@@ -4771,7 +4776,7 @@ public class Camera {
         // the passing string is null or the size is 0 or (0,0,0,0,0).
         @UnsupportedAppUsage
         private ArrayList<Area> splitArea(String str) {
-            if (str == null || str.charAt(0) != '('
+            if (str == null || str.isEmpty() || str.charAt(0) != '('
                     || str.charAt(str.length() - 1) != ')') {
                 Log.e(TAG, "Invalid area string=" + str);
                 return null;

@@ -33,6 +33,7 @@ import android.content.res.Resources;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.graphics.text.LineBreaker;
+import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Trace;
 import android.provider.Settings;
@@ -67,6 +68,7 @@ import com.android.systemui.R;
 import com.android.systemui.dagger.qualifiers.Main;
 import com.android.systemui.keyguard.KeyguardSliceProvider;
 import com.android.systemui.plugins.ActivityStarter;
+import com.android.systemui.plugins.ClockPlugin;
 import com.android.systemui.statusbar.policy.ConfigurationController;
 import com.android.systemui.tuner.TunerService;
 import com.android.systemui.util.wakelock.KeepAwakeAnimationListener;
@@ -88,6 +90,7 @@ public class KeyguardSliceView extends LinearLayout implements View.OnClickListe
 
     private static final String TAG = "KeyguardSliceView";
     public static final int DEFAULT_ANIM_DURATION = 550;
+    private static final String FONT_FAMILY = "sans-serif";
 
     private final HashMap<View, PendingIntent> mClickActions;
     private final ActivityStarter mActivityStarter;
@@ -105,6 +108,7 @@ public class KeyguardSliceView extends LinearLayout implements View.OnClickListe
     private int mDisplayId = INVALID_DISPLAY;
     private int mIconSize;
     private int mIconSizeWithHeader;
+    private int mWeatherIconSize;
     /**
      * Runnable called whenever the view contents change.
      */
@@ -115,6 +119,8 @@ public class KeyguardSliceView extends LinearLayout implements View.OnClickListe
     private final int mRowPadding;
     private float mRowTextSize;
     private float mRowWithHeaderTextSize;
+
+    private ClockPlugin mClockPlugin;
 
     @Inject
     public KeyguardSliceView(@Named(VIEW_CONTEXT) Context context, AttributeSet attrs,
@@ -153,6 +159,7 @@ public class KeyguardSliceView extends LinearLayout implements View.OnClickListe
                 R.dimen.widget_label_font_size);
         mRowWithHeaderTextSize = mContext.getResources().getDimensionPixelSize(
                 R.dimen.header_row_font_size);
+        mWeatherIconSize = mContext.getResources().getDimensionPixelSize(R.dimen.weather_icon_size);
         mTitle.setOnClickListener(this);
         mTitle.setBreakStrategy(LineBreaker.BREAK_STRATEGY_BALANCED);
     }
@@ -191,11 +198,24 @@ public class KeyguardSliceView extends LinearLayout implements View.OnClickListe
         setLayoutTransition(isVisible ? mLayoutTransition : null);
     }
 
+    public void setRowGravity(int gravity) {
+        mRow.setGravity(gravity);
+    }
+
+    public void setRowPadding(int left, int top, int right, int bottom) {
+        mRow.setPadding(left, top, right, bottom);
+    }
+
     /**
      * Returns whether the current visible slice has a title/header.
      */
     public boolean hasHeader() {
         return mHasHeader;
+    }
+
+    public void setClockPlugin(ClockPlugin plugin) {
+        mClockPlugin = plugin;
+        if (mSlice != null) mClockPlugin.setSlice(mSlice);
     }
 
     private void showSlice() {
@@ -251,14 +271,19 @@ public class KeyguardSliceView extends LinearLayout implements View.OnClickListe
             RowContent rc = (RowContent) subItems.get(i);
             SliceItem item = rc.getSliceItem();
             final Uri itemTag = item.getSlice().getUri();
+            final boolean isWeatherSlice = itemTag.toString().equals(KeyguardSliceProvider.KEYGUARD_WEATHER_URI);
             // Try to reuse the view if already exists in the layout
             KeyguardSliceTextView button = mRow.findViewWithTag(itemTag);
+            Typeface tf = Typeface.create(FONT_FAMILY, Typeface.NORMAL);
             if (button == null) {
                 button = new KeyguardSliceTextView(mContext);
+                button.setShouldTintDrawable(!isWeatherSlice);
                 button.setTextColor(blendedColor);
                 button.setTag(itemTag);
                 final int viewIndex = i - (mHasHeader ? 1 : 0);
                 mRow.addView(button, viewIndex);
+            } else {
+                button.setShouldTintDrawable(!isWeatherSlice);
             }
 
             PendingIntent pendingIntent = null;
@@ -272,6 +297,7 @@ public class KeyguardSliceView extends LinearLayout implements View.OnClickListe
             button.setContentDescription(rc.getContentDescription());
             button.setTextSize(TypedValue.COMPLEX_UNIT_PX,
                     mHasHeader ? mRowWithHeaderTextSize : mRowTextSize);
+            button.setTypeface(tf);
 
             Drawable iconDrawable = null;
             SliceItem icon = SliceQuery.find(item.getSlice(),
@@ -281,8 +307,8 @@ public class KeyguardSliceView extends LinearLayout implements View.OnClickListe
                 iconDrawable = icon.getIcon().loadDrawable(mContext);
                 if (iconDrawable != null) {
                     final int width = (int) (iconDrawable.getIntrinsicWidth()
-                            / (float) iconDrawable.getIntrinsicHeight() * iconSize);
-                    iconDrawable.setBounds(0, 0, Math.max(width, 1), iconSize);
+                        / (float) iconDrawable.getIntrinsicHeight() * (isWeatherSlice ? mWeatherIconSize : iconSize));
+                    iconDrawable.setBounds(0, 0, Math.max(width, 1), (isWeatherSlice ? mWeatherIconSize : iconSize));
                 }
             }
             button.setCompoundDrawables(iconDrawable, null, null, null);
@@ -347,6 +373,7 @@ public class KeyguardSliceView extends LinearLayout implements View.OnClickListe
     public void onChanged(Slice slice) {
         mSlice = slice;
         showSlice();
+        if (mClockPlugin != null) mClockPlugin.setSlice(slice);
     }
 
     @Override
@@ -395,6 +422,7 @@ public class KeyguardSliceView extends LinearLayout implements View.OnClickListe
                 R.dimen.widget_label_font_size);
         mRowWithHeaderTextSize = mContext.getResources().getDimensionPixelSize(
                 R.dimen.header_row_font_size);
+        mWeatherIconSize = mContext.getResources().getDimensionPixelSize(R.dimen.weather_icon_size);
     }
 
     public void refresh() {
@@ -528,16 +556,21 @@ public class KeyguardSliceView extends LinearLayout implements View.OnClickListe
      * Representation of an item that appears under the clock on main keyguard message.
      */
     @VisibleForTesting
-    static class KeyguardSliceTextView extends TextView implements
+    public static class KeyguardSliceTextView extends TextView implements
             ConfigurationController.ConfigurationListener {
 
         @StyleRes
         private static int sStyleId = R.style.TextAppearance_Keyguard_Secondary;
 
-        KeyguardSliceTextView(Context context) {
+        private boolean shouldTintDrawable = true;
+        public KeyguardSliceTextView(Context context) {
             super(context, null /* attrs */, 0 /* styleAttr */, sStyleId);
             onDensityOrFontScaleChanged();
             setEllipsize(TruncateAt.END);
+        }
+
+        public void setShouldTintDrawable(boolean shouldTintDrawable){
+            this.shouldTintDrawable = shouldTintDrawable;
         }
 
         @Override
@@ -592,6 +625,9 @@ public class KeyguardSliceView extends LinearLayout implements View.OnClickListe
         }
 
         private void updateDrawableColors() {
+            if (!shouldTintDrawable){
+                return;
+            }
             final int color = getCurrentTextColor();
             for (Drawable drawable : getCompoundDrawables()) {
                 if (drawable != null) {

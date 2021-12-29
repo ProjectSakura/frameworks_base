@@ -19,6 +19,18 @@
     android:title="@string/status_bar">
 
     <com.android.systemui.tuner.StatusBarSwitch
+        android:key="camera"
+        android:title="@string/status_bar_camera" />
+
+    <com.android.systemui.tuner.StatusBarSwitch
+        android:key="location"
+        android:title="@string/status_bar_location" />
+
+    <com.android.systemui.tuner.StatusBarSwitch
+        android:key="microphone"
+        android:title="@string/status_bar_microphone" />
+
+    <com.android.systemui.tuner.StatusBarSwitch
         android:key="rotate"
         android:title="@string/status_bar_settings_auto_rotation" />
 
@@ -67,6 +79,11 @@
     <com.android.systemui.tuner.StatusBarSwitch
         android:key="wifi"
         android:title="@string/quick_settings_wifi_label" />
+
+    <com.android.systemui.tuner.TunerSwitch
+        android:key="ims"
+        android:title="@string/status_bar_ims"
+        sysui:defValue="true" />
 
     <com.android.systemui.tuner.StatusBarSwitch
         android:key="ethernet"

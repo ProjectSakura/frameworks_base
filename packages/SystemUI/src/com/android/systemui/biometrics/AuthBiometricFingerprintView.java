@@ -64,6 +64,11 @@ public class AuthBiometricFingerprintView extends AuthBiometricView {
     }
 
     @Override
+    protected int getDescriptionTextId() {
+        return R.string.applock_fingerprint;
+    }
+
+    @Override
     public void updateState(@BiometricState int newState) {
         updateIcon(mState, newState);
 
@@ -91,7 +96,8 @@ public class AuthBiometricFingerprintView extends AuthBiometricView {
 
     private void showTouchSensorString() {
         mIndicatorView.setText(R.string.fingerprint_dialog_touch_sensor);
-        mIndicatorView.setTextColor(mTextColorHint);
+        mIndicatorView.setTextColor(getResources().getColor(
+                R.color.biometric_dialog_gray, mContext.getTheme()));
     }
 
     private void updateIcon(int lastState, int newState) {

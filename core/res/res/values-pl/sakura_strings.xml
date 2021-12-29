@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     Copyright (C) 2020-2021 Project Sakura
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+-->
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <!-- Gaming mode -->
+    <string name="notification_channel_gaming">Tryb grania</string>
+    <string name="gaming_mode_notification_title">Tryb grania włączony</string>
+    <string name="gaming_mode_notification_content">Dotknij, aby wyłączyć tryb grania</string>
+    <string name="gaming_mode_enabled_toast">Tryb grania włączony</string>
+    <string name="gaming_mode_disabled_toast">Tryb grania wyłączony</string>
+    <!-- Button that copies the url to the log of a crashed application -->
+    <string name="aerr_copy">Kopiuj adres URL dziennika awarii</string>
+    <string name="url_copy_success">Pomyślnie skopiowano URL</string>
+    <string name="url_copy_failed">Wystąpił błąd podczas przesyłania logów do serwisu dogbin</string>
+    <!-- Clipboard access toast -->
+    <string name="app_clipboard_access_denied">%1$s został pozbawiony dostępu do schowka</string>
+    <string name="app_clipboard_access_granted">%1$s uzyskał dostęp do schowka</string>
+    <!-- [CHAR LIMIT=NONE] Title of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
+    <string name="permlab_accessFontManager">dostęp do menadżera czcionek</string>
+    <!-- [CHAR LIMIT=NONE] Description of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
+    <string name="permdesc_accessFontManager">Zezwól aplikacjom na dostęp do menadżera czcionek.</string>
+    <!-- [CHAR LIMIT=NONE] Error when a package is installed but got the missing fonts.xml file, notifying the user why it isn't showing up. -->
+    <string name="fontservice_incompatible_font">Zainstalowany pakiet czcionek nie jest zgodny ze względu na brak plików fonts.xml. W celu uzyskania pomocy skontaktuj się z twórcą pakietu.</string>
+</resources>

@@ -25,6 +25,7 @@ import android.net.Credentials;
 import android.net.LocalServerSocket;
 import android.net.LocalSocket;
 import android.net.NetworkUtils;
+import android.os.Build;
 import android.os.FactoryTest;
 import android.os.IVold;
 import android.os.Process;
@@ -34,6 +35,8 @@ import android.provider.DeviceConfig;
 import android.system.ErrnoException;
 import android.system.Os;
 import android.util.Log;
+
+import com.android.internal.util.sakura.PixelPropsUtils;
 
 import dalvik.annotation.optimization.FastNative;
 import dalvik.system.ZygoteHooks;
@@ -46,6 +49,7 @@ import java.io.DataOutputStream;
 import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.lang.reflect.Field;
 
 /** @hide */
 public final class Zygote {
@@ -786,6 +790,34 @@ public final class Zygote {
 
     private static native void nativeBoostUsapPriority();
 
+    private static void maybeSetGmsModel(String packageName, String loggingTag) {
+        if (packageName != null &&
+            packageName.startsWith("com.google.android.gms")) {
+            /*
+             * This would be much prettier if we just removed "final" from the MODEL field in Build,
+             * but that's easy to detect should Google ever catch onto this. Inspecting bytecode
+             * is much harder so this is more future-proof.
+             *
+             * While it's an awful hack, it's technically safe because the field was populated at
+             * runtime (in pre-fork Zygote) and it's not a primitive.
+             */
+            try {
+                // Unlock
+                Field field = Build.class.getDeclaredField("MODEL");
+                field.setAccessible(true);
+
+                // Edit
+                String newModel = Build.MODEL + "\u200b";
+                field.set(null, newModel);
+
+                // Lock
+                field.setAccessible(false);
+            } catch (NoSuchFieldException | IllegalAccessException e) {
+                Log.w(loggingTag, "Failed to set fake model name for GMS", e);
+            }
+        }
+    }
+
     static void setAppProcessName(ZygoteArguments args, String loggingTag) {
         if (args.mNiceName != null) {
             Process.setArgV0(args.mNiceName);
@@ -794,6 +826,12 @@ public final class Zygote {
         } else {
             Log.w(loggingTag, "Unable to set package name.");
         }
+
+        // Modify model to defy SafetyNet hardware attestation in GMS
+        maybeSetGmsModel(args.mPackageName, loggingTag);
+
+        // Set pixel props
+        PixelPropsUtils.setProps(args.mPackageName);
     }
 
     private static final String USAP_ERROR_PREFIX = "Invalid command to USAP: ";
@@ -825,6 +863,9 @@ public final class Zygote {
         } else if (args.mHiddenApiAccessStatslogSampleRate != -1) {
             throw new IllegalArgumentException(
                     USAP_ERROR_PREFIX + "--hidden-api-statslog-sampling-rate=");
+        } else if (args.refreshTypeface) {
+            throw new IllegalArgumentException(
+                    USAP_ERROR_PREFIX + "--refresh-typeface");
         } else if (args.mInvokeWith != null) {
             throw new IllegalArgumentException(USAP_ERROR_PREFIX + "--invoke-with");
         } else if (args.mPermittedCapabilities != 0 || args.mEffectiveCapabilities != 0) {

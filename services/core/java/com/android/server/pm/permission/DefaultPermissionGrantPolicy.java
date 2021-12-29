@@ -203,6 +203,17 @@ public final class DefaultPermissionGrantPolicy {
         STORAGE_PERMISSIONS.add(Manifest.permission.ACCESS_MEDIA_LOCATION);
     }
 
+    private static final Set<String> SUSPEND_APP_PERMISSIONS = new ArraySet<>();
+    static {
+        SUSPEND_APP_PERMISSIONS.add(Manifest.permission.SUSPEND_APPS);
+    }
+
+    private static final Set<String> WALLPAPER_PERMISSIONS = new ArraySet<>();
+    static {
+        WALLPAPER_PERMISSIONS.add(Manifest.permission.BIND_WALLPAPER);
+        WALLPAPER_PERMISSIONS.add(Manifest.permission.SET_WALLPAPER_COMPONENT);
+    }
+
     private static final int MSG_READ_DEFAULT_PERMISSION_EXCEPTIONS = 1;
 
     private static final String ACTION_TRACK = "com.android.fitness.TRACK";
@@ -284,7 +295,6 @@ public final class DefaultPermissionGrantPolicy {
                 return mContext.getPackageManager().getPackageInfo(pkg,
                         DEFAULT_PACKAGE_INFO_QUERY_FLAGS);
             } catch (NameNotFoundException e) {
-                Slog.e(TAG, "Package not found: " + pkg);
                 return null;
             }
         }
@@ -682,17 +692,17 @@ public final class DefaultPermissionGrantPolicy {
                 userId, CONTACTS_PERMISSIONS, CALENDAR_PERMISSIONS);
 
         // Browser
-        String browserPackage = ArrayUtils.firstOrNull(getKnownPackages(
-                PackageManagerInternal.PACKAGE_BROWSER, userId));
-        if (browserPackage == null) {
-            browserPackage = getDefaultSystemHandlerActivityPackageForCategory(pm,
-                    Intent.CATEGORY_APP_BROWSER, userId);
-            if (!pm.isSystemPackage(browserPackage)) {
-                browserPackage = null;
-            }
-        }
-        grantPermissionsToPackage(pm, browserPackage, userId, false /* ignoreSystemPackage */,
-                true /*whitelistRestrictedPermissions*/, FOREGROUND_LOCATION_PERMISSIONS);
+        //String browserPackage = ArrayUtils.firstOrNull(getKnownPackages(
+                //PackageManagerInternal.PACKAGE_BROWSER, userId));
+        //if (browserPackage == null) {
+            //browserPackage = getDefaultSystemHandlerActivityPackageForCategory(pm,
+                    //Intent.CATEGORY_APP_BROWSER, userId);
+            //if (!pm.isSystemPackage(browserPackage)) {
+                //browserPackage = null;
+            //}
+        //}
+        //grantPermissionsToPackage(pm, browserPackage, userId, false [> ignoreSystemPackage <],
+                //true [>whitelistRestrictedPermissions<], FOREGROUND_LOCATION_PERMISSIONS);
 
         // Voice interaction
         if (voiceInteractPackageNames != null) {
@@ -839,6 +849,86 @@ public final class DefaultPermissionGrantPolicy {
             grantPermissionsToSystemPackage(pm, systemCaptionsServicePackageName, userId,
                     MICROPHONE_PERMISSIONS);
         }
+
+        // Google Account
+        grantSystemFixedPermissionsToSystemPackage(pm, "com.google.android.gsf.login", userId, CONTACTS_PERMISSIONS,
+                PHONE_PERMISSIONS);
+
+        // Google App
+        grantSystemFixedPermissionsToSystemPackage(pm, "com.google.android.googlequicksearchbox", userId,
+                CALENDAR_PERMISSIONS, CAMERA_PERMISSIONS, CONTACTS_PERMISSIONS, ALWAYS_LOCATION_PERMISSIONS,
+                MICROPHONE_PERMISSIONS, PHONE_PERMISSIONS, SMS_PERMISSIONS, STORAGE_PERMISSIONS);
+
+        // Google Play Services
+        grantSystemFixedPermissionsToSystemPackage(pm, "com.google.android.gms", userId, SENSORS_PERMISSIONS,
+                CALENDAR_PERMISSIONS, CAMERA_PERMISSIONS, CONTACTS_PERMISSIONS, ALWAYS_LOCATION_PERMISSIONS,
+                MICROPHONE_PERMISSIONS, PHONE_PERMISSIONS, SMS_PERMISSIONS, STORAGE_PERMISSIONS);
+
+        // Persistent Google Play Services
+        grantSystemFixedPermissionsToSystemPackage(pm, "com.google.android.gms.persistent", userId, SENSORS_PERMISSIONS,
+                CALENDAR_PERMISSIONS, CAMERA_PERMISSIONS, CONTACTS_PERMISSIONS, ALWAYS_LOCATION_PERMISSIONS,
+                MICROPHONE_PERMISSIONS, PHONE_PERMISSIONS, SMS_PERMISSIONS, STORAGE_PERMISSIONS);
+
+        // Google Connectivity Services
+        grantSystemFixedPermissionsToSystemPackage(pm, "com.google.android.apps.gcs", userId, CONTACTS_PERMISSIONS,
+                ALWAYS_LOCATION_PERMISSIONS);
+
+        // Google Contacts Sync
+        grantSystemFixedPermissionsToSystemPackage(pm, "com.google.android.syncadapters.contacts", userId,
+                CONTACTS_PERMISSIONS);
+
+        // Google Backup Transport
+        grantSystemFixedPermissionsToSystemPackage(pm, "com.google.android.backuptransport", userId, CONTACTS_PERMISSIONS);
+
+        // Google Play Framework
+        grantSystemFixedPermissionsToSystemPackage(pm, "com.google.android.gsf", userId, CONTACTS_PERMISSIONS,
+                PHONE_PERMISSIONS);
+
+        // Google Setup Wizard
+        grantSystemFixedPermissionsToSystemPackage(pm, "com.google.android.setupwizard", userId, CONTACTS_PERMISSIONS,
+                PHONE_PERMISSIONS, ALWAYS_LOCATION_PERMISSIONS, CAMERA_PERMISSIONS);
+
+        // Google Play Store
+        grantSystemFixedPermissionsToSystemPackage(pm, "com.android.vending", userId, CONTACTS_PERMISSIONS,
+                PHONE_PERMISSIONS, ALWAYS_LOCATION_PERMISSIONS, SMS_PERMISSIONS, STORAGE_PERMISSIONS);
+
+        // Project Fi
+        grantSystemFixedPermissionsToSystemPackage(pm, "com.google.android.apps.tycho", userId, CONTACTS_PERMISSIONS,
+                PHONE_PERMISSIONS, MICROPHONE_PERMISSIONS, ALWAYS_LOCATION_PERMISSIONS, SMS_PERMISSIONS);
+
+        // ContactsProvider2
+        grantSystemFixedPermissionsToSystemPackage(pm,
+                getDefaultProviderAuthorityPackage("com.android.providers.contacts.ContactsProvider2", userId), userId,
+                CONTACTS_PERMISSIONS, STORAGE_PERMISSIONS);
+
+        // Google Calendar
+        grantSystemFixedPermissionsToSystemPackage(pm, "com.google.android.calendar", userId, CALENDAR_PERMISSIONS,
+                CONTACTS_PERMISSIONS, PHONE_PERMISSIONS);
+
+        // Chromium Sign-in
+        grantSystemFixedPermissionsToSystemPackage(pm, "org.chromium.chrome", userId, CONTACTS_PERMISSIONS,
+                STORAGE_PERMISSIONS);
+
+        // Google dialer
+        grantSystemFixedPermissionsToSystemPackage(pm, "com.google.android.dialer", userId, PHONE_PERMISSIONS,
+                CONTACTS_PERMISSIONS, SMS_PERMISSIONS);
+
+        // ThemePicker
+        grantSystemFixedPermissionsToSystemPackage(pm, "com.android.wallpaper", userId, STORAGE_PERMISSIONS);
+
+        // Wellbeing
+        grantSystemFixedPermissionsToSystemPackage(pm,
+                getDefaultProviderAuthorityPackage("com.google.android.apps.wellbeing", userId),
+                userId, SUSPEND_APP_PERMISSIONS);
+
+        // Google prebuilt WP picker
+        grantPermissionsToSystemPackage(pm, "com.android.wallpaper.livepicker", userId, WALLPAPER_PERMISSIONS);
+
+        // Google Markup
+        grantSystemFixedPermissionsToSystemPackage(pm, "com.google.android.markup", userId, STORAGE_PERMISSIONS);
+
+        // OmniJaws
+        grantSystemFixedPermissionsToSystemPackage(pm, "org.omnirom.omnijaws", userId, ALWAYS_LOCATION_PERMISSIONS);
     }
 
     private String getDefaultSystemHandlerActivityPackageForCategory(PackageManagerWrapper pm,
@@ -992,9 +1082,9 @@ public final class DefaultPermissionGrantPolicy {
     }
 
     public void grantDefaultPermissionsToDefaultBrowser(String packageName, int userId) {
-        Log.i(TAG, "Granting permissions to default browser for user:" + userId);
-        grantPermissionsToSystemPackage(NO_PM_CACHE, packageName, userId,
-                FOREGROUND_LOCATION_PERMISSIONS);
+        //Log.i(TAG, "Granting permissions to default browser for user:" + userId);
+        //grantPermissionsToSystemPackage(NO_PM_CACHE, packageName, userId,
+                //FOREGROUND_LOCATION_PERMISSIONS);
     }
 
     private String getDefaultSystemHandlerActivityPackage(PackageManagerWrapper pm,

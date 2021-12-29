@@ -263,6 +263,16 @@ public class BatteryStatsHelper {
         mStats = null;
     }
 
+    private void clearAllStats() {
+        clearStats();
+        sStatsXfer = null;
+        sBatteryBroadcastXfer = null;
+        for (File f : sFileXfer.keySet()) {
+            f.delete();
+        }
+        sFileXfer.clear();
+     }
+
     @UnsupportedAppUsage
     public BatteryStats getStats() {
         if (mStats == null) {
@@ -495,16 +505,24 @@ public class BatteryStatsHelper {
                 }
             }
         }
-        Collections.sort(mMobilemsppList, new Comparator<BatterySipper>() {
-            @Override
-            public int compare(BatterySipper lhs, BatterySipper rhs) {
-                return Double.compare(rhs.mobilemspp, lhs.mobilemspp);
-            }
-        });
+        try {
+            Collections.sort(mMobilemsppList, new Comparator<BatterySipper>() {
+                @Override
+                public int compare(BatterySipper lhs, BatterySipper rhs) {
+                    return Double.compare(rhs.mobilemspp, lhs.mobilemspp);
+                }
+            });
+        } catch (Exception e) {
+          // nothing to do
+        }
 
         processMiscUsage();
 
-        Collections.sort(mUsageList);
+        try {
+           Collections.sort(mUsageList);
+        } catch (Exception e) {
+          // nothing to do
+        }
 
         // At this point, we've sorted the list so we are guaranteed the max values are at the top.
         // We have only added real powers so far.
@@ -905,7 +923,10 @@ public class BatteryStatsHelper {
             }
         }
 
-        smearScreenBatterySipper(sippers, screenSipper);
+        //Only valid screen power consumption need to smear
+        if(screenSipper != null){
+           smearScreenBatterySipper(sippers, screenSipper);
+        }
 
         return proportionalSmearPowerMah;
     }
@@ -1050,6 +1071,15 @@ public class BatteryStatsHelper {
         if (mCollectBatteryBroadcast) {
             mBatteryBroadcast = mContext.registerReceiver(null,
                     new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+        }
+    }
+
+    public void resetStatistics() {
+        try {
+            clearAllStats();
+            mBatteryInfo.resetStatistics();
+        } catch (RemoteException e) {
+            Log.e(TAG, "RemoteException:", e);
         }
     }
 

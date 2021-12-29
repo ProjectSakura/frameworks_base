@@ -6,8 +6,10 @@ import android.animation.Animator;
 import android.animation.ValueAnimator;
 import android.app.WallpaperManager;
 import android.content.Context;
+import android.content.res.Configuration;
 import android.graphics.Paint;
 import android.graphics.Paint.Style;
+import android.graphics.Typeface;
 import android.os.Build;
 import android.transition.Fade;
 import android.transition.Transition;
@@ -18,6 +20,7 @@ import android.transition.TransitionValues;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.util.MathUtils;
+import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
@@ -29,6 +32,7 @@ import androidx.annotation.VisibleForTesting;
 import com.android.internal.colorextraction.ColorExtractor;
 import com.android.internal.colorextraction.ColorExtractor.OnColorsChangedListener;
 import com.android.keyguard.clock.ClockManager;
+import com.android.keyguard.KeyguardSliceView;
 import com.android.systemui.Interpolators;
 import com.android.systemui.R;
 import com.android.systemui.colorextraction.SysuiColorExtractor;
@@ -51,12 +55,14 @@ import javax.inject.Named;
 public class KeyguardClockSwitch extends RelativeLayout {
 
     private static final String TAG = "KeyguardClockSwitch";
-    private static final boolean CUSTOM_CLOCKS_ENABLED = true;
 
     /**
      * Animation fraction when text is transitioned to/from bold.
      */
     private static final float TO_BOLD_TRANSITION_FRACTION = 0.7f;
+
+
+    private static final String FONT_FAMILY = "sans-serif";
 
     /**
      * Controller used to track StatusBar state to know when to show the big_clock_container.
@@ -111,7 +117,7 @@ public class KeyguardClockSwitch extends RelativeLayout {
      * Status area (date and other stuff) shown below the clock. Plugin can decide whether or not to
      * show it below the alternate clock.
      */
-    private View mKeyguardStatusArea;
+    private KeyguardSliceView mKeyguardStatusArea;
 
     /**
      * Maintain state so that a newly connected plugin can be initialized.
@@ -200,9 +206,7 @@ public class KeyguardClockSwitch extends RelativeLayout {
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
-        if (CUSTOM_CLOCKS_ENABLED) {
-            mClockManager.addOnClockChangedListener(mClockChangedListener);
-        }
+        mClockManager.addOnClockChangedListener(mClockChangedListener);
         mStatusBarStateController.addCallback(mStateListener);
         mSysuiColorExtractor.addOnColorsChangedListener(mColorsListener);
         updateColors();
@@ -211,12 +215,21 @@ public class KeyguardClockSwitch extends RelativeLayout {
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
-        if (CUSTOM_CLOCKS_ENABLED) {
-            mClockManager.removeOnClockChangedListener(mClockChangedListener);
-        }
+        mClockManager.removeOnClockChangedListener(mClockChangedListener);
         mStatusBarStateController.removeCallback(mStateListener);
         mSysuiColorExtractor.removeOnColorsChangedListener(mColorsListener);
         setClockPlugin(null);
+    }
+
+    @Override
+    protected void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        Typeface tf = Typeface.create(FONT_FAMILY, Typeface.NORMAL);
+        mClockView.setTypeface(tf);
+        mClockViewBold.setTypeface(tf);
+        if (mClockPlugin != null) {
+            mClockPlugin.setTypeface(tf);
+        }
     }
 
     private void setClockPlugin(ClockPlugin plugin) {
@@ -233,6 +246,7 @@ public class KeyguardClockSwitch extends RelativeLayout {
             mClockPlugin.onDestroyView();
             mClockPlugin = null;
         }
+        adjustStatusAreaPadding(plugin);
         if (plugin == null) {
             if (mShowingHeader) {
                 mClockView.setVisibility(View.GONE);
@@ -267,6 +281,8 @@ public class KeyguardClockSwitch extends RelativeLayout {
         mClockPlugin.setStyle(getPaint().getStyle());
         mClockPlugin.setTextColor(getCurrentTextColor());
         mClockPlugin.setDarkAmount(mDarkAmount);
+        mClockPlugin.setHasVisibleNotifications(mHasVisibleNotifications);
+        mKeyguardStatusArea.setClockPlugin(mClockPlugin);
         if (mColorPalette != null) {
             mClockPlugin.setColorPalette(mSupportsDarkText, mColorPalette);
         }
@@ -348,6 +364,9 @@ public class KeyguardClockSwitch extends RelativeLayout {
             return;
         }
         mHasVisibleNotifications = hasVisibleNotifications;
+        if (mClockPlugin != null) {
+            mClockPlugin.setHasVisibleNotifications(mHasVisibleNotifications);
+        }
         if (mDarkAmount == 0f && mBigClockContainer != null) {
             // Starting a fade transition since the visibility of the big clock will change.
             TransitionManager.beginDelayedTransition(mBigClockContainer,
@@ -442,6 +461,14 @@ public class KeyguardClockSwitch extends RelativeLayout {
                 mBigClockContainer.setVisibility(VISIBLE);
             }
         }
+    }
+
+    private void adjustStatusAreaPadding(ClockPlugin plugin) {
+        final boolean mIsTypeClock = plugin != null && plugin.getName().equals("type");
+        mKeyguardStatusArea.setRowGravity(mIsTypeClock ? Gravity.LEFT : Gravity.CENTER);
+        mKeyguardStatusArea.setRowPadding(mIsTypeClock ? mContext.getResources()
+                .getDimensionPixelSize(R.dimen.keyguard_status_area_typeclock_padding) : 0, 0, 0,
+                0);
     }
 
     /**

@@ -84,6 +84,7 @@ import android.database.sqlite.SQLiteDebug.DbStats;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.HardwareRenderer;
+import android.graphics.Typeface;
 import android.graphics.ImageDecoder;
 import android.hardware.display.DisplayManagerGlobal;
 import android.inputmethodservice.InputMethodService;
@@ -5934,9 +5935,13 @@ public final class ActivityThread extends ClientTransactionHandler {
         if (configDiff != 0) {
             // Ask text layout engine to free its caches if there is a locale change
             boolean hasLocaleConfigChange = ((configDiff & ActivityInfo.CONFIG_LOCALE) != 0);
-            if (hasLocaleConfigChange) {
-                Canvas.freeTextLayoutCaches();
-                if (DEBUG_CONFIGURATION) Slog.v(TAG, "Cleared TextLayout Caches");
+            boolean hasFontConfigChange = ((configDiff & ActivityInfo.CONFIG_THEME_FONT) != 0);
+            if (hasLocaleConfigChange || hasFontConfigChange) {
+                 Canvas.freeTextLayoutCaches();
+                if (hasFontConfigChange) {
+                    Typeface.recreateDefaults();
+                }
+                 if (DEBUG_CONFIGURATION) Slog.v(TAG, "Cleared TextLayout Caches");
             }
         }
     }
@@ -6825,9 +6830,9 @@ public final class ActivityThread extends ClientTransactionHandler {
         }
         if (holder == null) {
             if (UserManager.get(c).isUserUnlocked(userId)) {
-                Slog.e(TAG, "Failed to find provider info for " + auth);
+                if (DEBUG_MESSAGES) Slog.e(TAG, "Failed to find provider info for " + auth);
             } else {
-                Slog.w(TAG, "Failed to find provider info for " + auth + " (user not unlocked)");
+                if (DEBUG_MESSAGES) Slog.w(TAG, "Failed to find provider info for " + auth + " (user not unlocked)");
             }
             return null;
         }

@@ -37,6 +37,10 @@ import android.metrics.LogMaker;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
+import android.os.UserHandle;
+import android.provider.Settings;
 import android.service.quicksettings.Tile;
 import android.text.format.DateUtils;
 import android.util.ArraySet;
@@ -63,11 +67,13 @@ import com.android.systemui.plugins.qs.QSIconView;
 import com.android.systemui.plugins.qs.QSTile;
 import com.android.systemui.plugins.qs.QSTile.State;
 import com.android.systemui.plugins.statusbar.StatusBarStateController;
+import com.android.systemui.R;
 import com.android.systemui.qs.PagedTileLayout.TilePage;
 import com.android.systemui.qs.QSEvent;
 import com.android.systemui.qs.QSHost;
 import com.android.systemui.qs.QuickStatusBarHeader;
 import com.android.systemui.qs.logging.QSLogger;
+import com.android.systemui.tuner.TunerService;
 
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
@@ -82,7 +88,7 @@ import java.util.ArrayList;
  *
  * @param <TState> see above
  */
-public abstract class QSTileImpl<TState extends State> implements QSTile, LifecycleOwner, Dumpable {
+public abstract class QSTileImpl<TState extends State> implements QSTile, LifecycleOwner, Dumpable, TunerService.Tunable {
     protected final String TAG = "Tile." + getClass().getSimpleName();
     protected static final boolean DEBUG = Log.isLoggable("Tile", Log.DEBUG);
 
@@ -112,6 +118,12 @@ public abstract class QSTileImpl<TState extends State> implements QSTile, Lifecy
     private EnforcedAdmin mEnforcedAdmin;
     private boolean mShowingDetail;
     private int mIsFullQs;
+
+    protected Vibrator mVibrator;
+    private boolean mVibrationEnabled;
+
+    private static final String QUICK_SETTINGS_VIBRATE =
+            "system:" + Settings.System.QUICK_SETTINGS_VIBRATE;
 
     private final LifecycleRegistry mLifecycle = new LifecycleRegistry(this);
 
@@ -158,6 +170,22 @@ public abstract class QSTileImpl<TState extends State> implements QSTile, Lifecy
         mTmpState = newTileState();
         mQSLogger = host.getQSLogger();
         mUiEventLogger = host.getUiEventLogger();
+        mVibrator = (Vibrator) mContext.getSystemService(Context.VIBRATOR_SERVICE);
+
+        Dependency.get(TunerService.class).addTunable(this,
+                QUICK_SETTINGS_VIBRATE);
+    }
+
+    @Override
+    public void onTuningChanged(String key, String newValue) {
+        switch (key) {
+            case QUICK_SETTINGS_VIBRATE:
+                mVibrationEnabled =
+                        TunerService.parseIntegerSwitch(newValue, false);
+                break;
+            default:
+                break;
+        }
     }
 
     protected final void resetStates() {
@@ -232,6 +260,13 @@ public abstract class QSTileImpl<TState extends State> implements QSTile, Lifecy
         return true;
     }
 
+    public void vibrateTile(int duration) {
+        if (mVibrationEnabled && mVibrator != null && mVibrator.hasVibrator()) {
+            mVibrator.vibrate(VibrationEffect.createOneShot(duration,
+                    VibrationEffect.DEFAULT_AMPLITUDE));
+        }
+    }
+
     // safe to call from any thread
 
     public void addCallback(Callback callback) {
@@ -254,6 +289,7 @@ public abstract class QSTileImpl<TState extends State> implements QSTile, Lifecy
                 getInstanceId());
         mQSLogger.logTileClick(mTileSpec, mStatusBarStateController.getState(), mState.state);
         mHandler.sendEmptyMessage(H.CLICK);
+        vibrateTile(100);
     }
 
     public void secondaryClick() {
@@ -265,6 +301,7 @@ public abstract class QSTileImpl<TState extends State> implements QSTile, Lifecy
         mQSLogger.logTileSecondaryClick(mTileSpec, mStatusBarStateController.getState(),
                 mState.state);
         mHandler.sendEmptyMessage(H.SECONDARY_CLICK);
+        vibrateTile(100);
     }
 
     public void longClick() {
@@ -275,6 +312,7 @@ public abstract class QSTileImpl<TState extends State> implements QSTile, Lifecy
                 getInstanceId());
         mQSLogger.logTileLongClick(mTileSpec, mStatusBarStateController.getState(), mState.state);
         mHandler.sendEmptyMessage(H.LONG_CLICK);
+        vibrateTile(100);
 
         Prefs.putInt(
                 mContext,
@@ -502,14 +540,21 @@ public abstract class QSTileImpl<TState extends State> implements QSTile, Lifecy
     public abstract CharSequence getTileLabel();
 
     public static int getColorForState(Context context, int state) {
+
+        boolean setQsUseNewTint = Settings.System.getIntForUser(context.getContentResolver(),
+                    Settings.System.QS_PANEL_BG_USE_NEW_TINT, 1, UserHandle.USER_CURRENT) == 1;
+
         switch (state) {
             case Tile.STATE_UNAVAILABLE:
                 return Utils.getDisabled(context,
                         Utils.getColorAttrDefaultColor(context, android.R.attr.textColorSecondary));
             case Tile.STATE_INACTIVE:
-                return Utils.getColorAttrDefaultColor(context, android.R.attr.textColorSecondary);
+                return Utils.getColorAttrDefaultColor(context, android.R.attr.textColorPrimary);
             case Tile.STATE_ACTIVE:
-                return Utils.getColorAttrDefaultColor(context, android.R.attr.colorPrimary);
+                    if (setQsUseNewTint)
+                        return Utils.getColorAttrDefaultColor(context, android.R.attr.colorAccent);
+                    else
+                        return Utils.getColorAttrDefaultColor(context, android.R.attr.colorPrimary);
             default:
                 Log.e("QSTile", "Invalid state " + state);
                 return 0;

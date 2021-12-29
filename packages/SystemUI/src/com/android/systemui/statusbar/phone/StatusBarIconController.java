@@ -19,10 +19,13 @@ import static android.app.StatusBarManager.DISABLE_NONE;
 
 import static com.android.systemui.statusbar.phone.StatusBarIconHolder.TYPE_ICON;
 import static com.android.systemui.statusbar.phone.StatusBarIconHolder.TYPE_MOBILE;
+import static com.android.systemui.statusbar.phone.StatusBarIconHolder.TYPE_NETWORK_TRAFFIC;
 import static com.android.systemui.statusbar.phone.StatusBarIconHolder.TYPE_WIFI;
+import static com.android.systemui.statusbar.phone.StatusBarIconHolder.TYPE_IMS;
 
 import android.content.Context;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.text.TextUtils;
 import android.util.ArraySet;
 import android.view.Gravity;
@@ -44,10 +47,15 @@ import com.android.systemui.statusbar.CommandQueue;
 import com.android.systemui.statusbar.StatusBarIconView;
 import com.android.systemui.statusbar.StatusBarMobileView;
 import com.android.systemui.statusbar.StatusBarWifiView;
+import com.android.systemui.statusbar.StatusBarImsView;
 import com.android.systemui.statusbar.StatusIconDisplayable;
 import com.android.systemui.statusbar.phone.StatusBarSignalPolicy.MobileIconState;
 import com.android.systemui.statusbar.phone.StatusBarSignalPolicy.WifiIconState;
+import com.android.systemui.statusbar.policy.NetworkTrafficSB;
+import com.android.systemui.tuner.TunerService;
 import com.android.systemui.util.Utils.DisableStateTracker;
+
+import com.android.systemui.statusbar.policy.NetworkController.ImsIconState;
 
 import java.util.List;
 
@@ -67,6 +75,7 @@ public interface StatusBarIconController {
     public void setSignalIcon(String slot, WifiIconState state);
     public void setMobileIcons(String slot, List<MobileIconState> states);
     public void setIconVisibility(String slot, boolean b);
+    public void setImsIcon(String slot, ImsIconState state);
 
     /**
      * Sets the live region mode for the icon
@@ -134,6 +143,7 @@ public interface StatusBarIconController {
                 mDarkIconDispatcher.removeDarkReceiver((DarkReceiver) mGroup.getChildAt(i));
             }
             mGroup.removeAllViews();
+            Dependency.get(TunerService.class).removeTunable(this);
         }
 
         @Override
@@ -201,7 +211,7 @@ public interface StatusBarIconController {
     /**
      * Turns info from StatusBarIconController into ImageViews in a ViewGroup.
      */
-    public static class IconManager implements DemoMode {
+    public static class IconManager implements DemoMode, TunerService.Tunable {
         protected final ViewGroup mGroup;
         protected final Context mContext;
         protected final int mIconSize;
@@ -213,11 +223,19 @@ public interface StatusBarIconController {
         private boolean mIsInDemoMode;
         protected DemoStatusIcons mDemoStatusIcons;
 
+        private boolean mOldStyleType;
+        private boolean mConfigUseOldMobileType;
+
+        private static final String USE_OLD_MOBILETYPE =
+            "system:" + Settings.System.USE_OLD_MOBILETYPE;
+
         public IconManager(ViewGroup group, CommandQueue commandQueue) {
             mGroup = group;
             mContext = group.getContext();
             mIconSize = mContext.getResources().getDimensionPixelSize(
                     com.android.internal.R.dimen.status_bar_icon_size);
+            mConfigUseOldMobileType = mContext.getResources().
+                    getBoolean(com.android.internal.R.bool.config_useOldMobileIcons);
 
             DisableStateTracker tracker =
                     new DisableStateTracker(DISABLE_NONE, DISABLE2_SYSTEM_ICONS, commandQueue);
@@ -260,6 +278,12 @@ public interface StatusBarIconController {
 
                 case TYPE_MOBILE:
                     return addMobileIcon(index, slot, holder.getMobileState());
+
+                case TYPE_IMS:
+                    return addImsIcon(index, slot, holder.getImsState());
+
+                case TYPE_NETWORK_TRAFFIC:
+                    return addNetworkTraffic(index, slot);
             }
 
             return null;
@@ -286,15 +310,29 @@ public interface StatusBarIconController {
             return view;
         }
 
+        protected NetworkTrafficSB addNetworkTraffic(int index, String slot) {
+            NetworkTrafficSB view = onCreateNetworkTraffic(slot);
+            mGroup.addView(view, index, onCreateLayoutParams());
+            return view;
+        }
+
         @VisibleForTesting
         protected StatusBarMobileView addMobileIcon(int index, String slot, MobileIconState state) {
             StatusBarMobileView view = onCreateStatusBarMobileView(slot);
             view.applyMobileState(state);
             mGroup.addView(view, index, onCreateLayoutParams());
+            Dependency.get(TunerService.class).addTunable(this, USE_OLD_MOBILETYPE);
 
             if (mIsInDemoMode) {
                 mDemoStatusIcons.addMobileView(state);
             }
+            return view;
+        }
+
+        protected StatusBarImsView addImsIcon(int index, String slot, ImsIconState state) {
+            StatusBarImsView view = onCreateStatusBarImsView(slot);
+            view.applyImsState(state);
+            mGroup.addView(view, index, onCreateLayoutParams());
             return view;
         }
 
@@ -312,12 +350,25 @@ public interface StatusBarIconController {
             return view;
         }
 
+        private StatusBarImsView onCreateStatusBarImsView(String slot) {
+            StatusBarImsView view = StatusBarImsView.fromContext(mContext, slot);
+            return view;
+        }
+
+        private NetworkTrafficSB onCreateNetworkTraffic(String slot) {
+            NetworkTrafficSB view = new NetworkTrafficSB(mContext);
+            view.setPadding(2, 0, 2, 0);
+            view.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
+            return view;
+        }
+
         protected LinearLayout.LayoutParams onCreateLayoutParams() {
             return new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, mIconSize);
         }
 
         protected void destroy() {
             mGroup.removeAllViews();
+            Dependency.get(TunerService.class).removeTunable(this);
         }
 
         protected void onIconExternal(int viewIndex, int height) {
@@ -360,14 +411,20 @@ public interface StatusBarIconController {
         public void onSetIconHolder(int viewIndex, StatusBarIconHolder holder) {
             switch (holder.getType()) {
                 case TYPE_ICON:
-                    onSetIcon(viewIndex, holder.getIcon());
+                    View view = mGroup.getChildAt(viewIndex);
+                    if (view instanceof StatusBarIconView) {
+                        onSetIcon(viewIndex, holder.getIcon());
+                    }
                     return;
                 case TYPE_WIFI:
                     onSetSignalIcon(viewIndex, holder.getWifiState());
                     return;
-
                 case TYPE_MOBILE:
                     onSetMobileIcon(viewIndex, holder.getMobileState());
+                    return;
+                case TYPE_IMS:
+                    onSetImsIcon(viewIndex, holder.getImsState());
+                    return;
                 default:
                     break;
             }
@@ -392,6 +449,13 @@ public interface StatusBarIconController {
 
             if (mIsInDemoMode) {
                 mDemoStatusIcons.updateMobileState(state);
+            }
+        }
+
+        public void onSetImsIcon(int viewIndex, ImsIconState state) {
+            StatusBarImsView view = (StatusBarImsView) mGroup.getChildAt(viewIndex);
+            if (view != null) {
+                view.applyImsState(state);
             }
         }
 
@@ -423,6 +487,28 @@ public interface StatusBarIconController {
 
         protected DemoStatusIcons createDemoStatusIcons() {
             return new DemoStatusIcons((LinearLayout) mGroup, mIconSize);
+        }
+
+        @Override
+        public void onTuningChanged(String key, String newValue) {
+            switch (key) {
+                case USE_OLD_MOBILETYPE:
+                    mOldStyleType =
+                        TunerService.parseIntegerSwitch(newValue, mConfigUseOldMobileType);
+                    updateOldStyleMobileDataIcons();
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        private void updateOldStyleMobileDataIcons() {
+            for (int i = 0; i < mGroup.getChildCount(); i++) {
+                View child = mGroup.getChildAt(i);
+                if (child instanceof StatusBarMobileView) {
+                    ((StatusBarMobileView) child).updateDisplayType(mOldStyleType);
+                }
+            }
         }
     }
 }
