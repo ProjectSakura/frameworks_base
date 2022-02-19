@@ -7422,6 +7422,9 @@ message MetricsEvent {
     SETTINGS_GESTURE_NAV_BACK_SENSITIVITY_DLG = 1748;
 
 
+    // Sakura Settings
+    SAKURA_SETTINGS = 4000;
+
 
     // ACTION: Chooser > User taps a system-provided target such as copy
     //   SUBTYPE: Index of target
