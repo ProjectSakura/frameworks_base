@@ -288,6 +288,9 @@ public class CentralSurfacesImpl implements CoreStartable, CentralSurfaces,
     private static final String FORCE_SHOW_NAVBAR =
             "lineagesystem:" + LineageSettings.System.FORCE_SHOW_NAVBAR;
 
+    private static final String QS_TRANSPARENCY =
+            "system:" + Settings.System.QS_TRANSPARENCY;
+
     private static final int MSG_LAUNCH_TRANSITION_TIMEOUT = 1003;
     // 1020-1040 reserved for BaseStatusBar
 
@@ -912,6 +915,7 @@ public class CentralSurfacesImpl implements CoreStartable, CentralSurfaces,
         createAndAddWindows(result);
 
         mTunerService.addTunable(this, FORCE_SHOW_NAVBAR);
+        mTunerService.addTunable(this, QS_TRANSPARENCY);
 
         // Set up the initial notification state. This needs to happen before CommandQueue.disable()
         setUpPresenter();
@@ -2903,6 +2907,10 @@ public class CentralSurfacesImpl implements CoreStartable, CentralSurfaces,
                         }
                     }
                 });
+                break;
+            case QS_TRANSPARENCY:
+                mScrimController.setCustomScrimAlpha(
+                        TunerService.parseInteger(newValue, 100));
                 break;
             default:
                 break;
