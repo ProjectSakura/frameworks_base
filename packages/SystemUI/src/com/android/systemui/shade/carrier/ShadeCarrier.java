@@ -152,8 +152,11 @@ public class ShadeCarrier extends LinearLayout {
     }
 
     public void updateColors(ColorStateList colorStateList) {
+       final boolean visible = !mIsSingleCarrier;
+        if (visible) {
         mMobileRoaming.setImageTintList(colorStateList);
         mMobileSignal.setImageTintList(colorStateList);
+       }
     }
 
     @VisibleForTesting
@@ -163,6 +166,10 @@ public class ShadeCarrier extends LinearLayout {
 
     public void setCarrierText(CharSequence text) {
         mCarrierText.setText(text);
+    }
+
+    public void setCarrierTextColor(int color) {
+        mCarrierText.setTextColor(color);
     }
 
     public void updateTextAppearance(@StyleRes int resId) {
