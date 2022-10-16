@@ -114,4 +114,9 @@
 
     <!-- Label for UI element which allows to use lens on screenshot [CHAR LIMIT=30] -->
     <string name="screenshot_lens_label">Lens</string>
+
+   <!-- Weather Tile -->
+    <string name="omnijaws_service_error">Error loading weather data</string>
+    <string name="omnijaws_service_unknown">No weather data</string>
+    <string name="omnijaws_label_default">Weather</string>
 </resources>
