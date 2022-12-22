@@ -180,7 +180,7 @@ public final class Trace {
     @UnsupportedAppUsage
     @SystemApi(client = MODULE_LIBRARIES)
     public static boolean isTagEnabled(long traceTag) {
-        return nativeIsTagEnabled(traceTag);
+            return false;
     }
 
     /**
