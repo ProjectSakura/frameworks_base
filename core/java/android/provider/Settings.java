@@ -6506,6 +6506,11 @@ public final class Settings {
         public static final String QS_BT_AUTO_ON = "qs_bt_auto_on";
 
         /**
+         * @hide
+         */
+        public static final String QS_TILE_UI_STYLE = "qs_tile_ui_style";
+
+        /**
          * GameSpace: List of added games by user
          * @hide
          */
