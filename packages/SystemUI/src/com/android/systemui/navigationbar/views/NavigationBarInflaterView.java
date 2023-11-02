@@ -20,6 +20,8 @@ import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
 import static android.view.WindowManagerPolicyConstants.NAV_BAR_MODE_3BUTTON;
 import static android.view.WindowManagerPolicyConstants.NAV_BAR_MODE_GESTURAL;
 
+import static com.android.systemui.shared.recents.utilities.Utilities.isLargeScreen;
+
 import android.annotation.Nullable;
 import android.app.ActivityManager;
 import android.content.Context;
@@ -102,6 +104,8 @@ public class NavigationBarInflaterView extends FrameLayout implements TunerServi
             "org.lineageos.overlay.customization.navbar.nohint";
     private static final String GESTURE_NAVBAR_LENGTH_MODE =
             "system:" + Settings.System.GESTURE_NAVBAR_LENGTH_MODE;
+    private static final String ENABLE_TASKBAR =
+            "lineagesystem:" + LineageSettings.System.ENABLE_TASKBAR;
 
     private static class Listener implements NavigationModeController.ModeChangedListener {
         private final WeakReference<NavigationBarInflaterView> mSelf;
@@ -144,6 +148,7 @@ public class NavigationBarInflaterView extends FrameLayout implements TunerServi
     private boolean mInverseLayout;
     private boolean mIsHintEnabled;
     private int mHomeHandleWidthMode = 0;
+    private boolean mIsTaskbarEnabled;
 
     private TunerService mTunerService;
 
@@ -211,6 +216,7 @@ public class NavigationBarInflaterView extends FrameLayout implements TunerServi
         mTunerService.addTunable(this, KEY_NAVIGATION_HINT);
         mTunerService.addTunable(this, NAVBAR_LAYOUT_VIEWS);
         mTunerService.addTunable(this, GESTURE_NAVBAR_LENGTH_MODE);
+        mTunerService.addTunable(this, ENABLE_TASKBAR);
     }
 
     @Override
@@ -235,6 +241,10 @@ public class NavigationBarInflaterView extends FrameLayout implements TunerServi
         } else if (GESTURE_NAVBAR_LENGTH_MODE.equals(key)) {
             mHomeHandleWidthMode = TunerService.parseInteger(newValue, 1);
             onLikelyDefaultLayoutChange(true);
+        } else if (ENABLE_TASKBAR.equals(key)) {
+            mIsTaskbarEnabled =
+                TunerService.parseIntegerSwitch(newValue, isLargeScreen(mContext));
+            updateHint();
         }
     }
 
@@ -305,7 +315,8 @@ public class NavigationBarInflaterView extends FrameLayout implements TunerServi
     private void updateHint() {
         final IOverlayManager iom = IOverlayManager.Stub.asInterface(
                 ServiceManager.getService(Context.OVERLAY_SERVICE));
-        final boolean state = mNavBarMode == NAV_BAR_MODE_GESTURAL && !mIsHintEnabled;
+        final boolean state = mNavBarMode == NAV_BAR_MODE_GESTURAL && (!mIsHintEnabled ||
+            mIsTaskbarEnabled);
         final int userId = ActivityManager.getCurrentUser();
         try {
             iom.setEnabled(OVERLAY_NAVIGATION_HIDE_HINT, state, userId);
