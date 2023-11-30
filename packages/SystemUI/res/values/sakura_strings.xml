@@ -174,4 +174,8 @@
 
     <!-- VPN tethering QS tile -->
     <string name="vpn_tethering_label">VPN tethering</string>
+
+    <!-- Text while recognizing face -->
+    <string name="face_unlock_recognizing">Recognizing face...</string>
+>>>>>>> 6b79d0f2d779 (SystemUI: Implement face unlock recognition animation and text)
 </resources>
