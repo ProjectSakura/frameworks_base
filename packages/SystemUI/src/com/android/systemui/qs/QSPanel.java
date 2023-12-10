@@ -73,6 +73,10 @@ public class QSPanel extends LinearLayout implements Tunable {
             "system:" + Settings.System.QS_LAYOUT_COLUMNS;
     public static final String QS_LAYOUT_COLUMNS_LANDSCAPE =
             "system:" + Settings.System.QS_LAYOUT_COLUMNS_LANDSCAPE;
+    public static final String QQS_LAYOUT_ROWS =
+            "system:" + Settings.System.QQS_LAYOUT_ROWS;
+    public static final String QQS_LAYOUT_ROWS_LANDSCAPE =
+            "system:" + Settings.System.QQS_LAYOUT_ROWS_LANDSCAPE;
 
     private static final String TAG = "QSPanel";
 
@@ -393,6 +397,8 @@ public class QSPanel extends LinearLayout implements Tunable {
                 break;
             case QS_LAYOUT_COLUMNS:
             case QS_LAYOUT_COLUMNS_LANDSCAPE:
+            case QQS_LAYOUT_ROWS:
+            case QQS_LAYOUT_ROWS_LANDSCAPE:
                 needsDynamicRowsAndColumns();
                 break;
             default:
@@ -503,9 +509,8 @@ public class QSPanel extends LinearLayout implements Tunable {
 
     public void needsDynamicRowsAndColumns() {
         if (mTileLayout != null) {
-            int columns = mTileLayout.getResourceColumns();
-            mTileLayout.setMinRows(mUsingHorizontalLayout ? 2 : 1);
-            mTileLayout.setMaxColumns(columns > 3 && mUsingHorizontalLayout ? columns / 2 : columns);
+            mTileLayout.setMinRows(mTileLayout.getResourceRows());
+            mTileLayout.setMaxColumns(mTileLayout.getResourceColumns());
         }
     }
 
@@ -832,6 +837,8 @@ public class QSPanel extends LinearLayout implements Tunable {
         default void setLogger(QSLogger qsLogger) { }
 
         int getResourceColumns();
+
+        int getResourceRows();
 
         void updateSettings();
     }
