@@ -17,6 +17,9 @@ import android.app.ActivityManager
 import android.app.UserSwitchObserver
 import android.content.Context
 import android.database.ContentObserver
+import android.graphics.Bitmap
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.UserHandle
 import android.provider.Settings
@@ -565,8 +568,13 @@ open class ClockRegistry(
         return availableClocks.map { (_, clock) -> clock.metadata }
     }
 
-    fun getClockPickerConfig(clockId: ClockId): ClockPickerConfig? =
-        availableClocks[clockId]?.provider?.getClockPickerConfig(clockId)
+    fun getClockPickerConfig(clockId: ClockId): ClockPickerConfig =
+	    availableClocks[clockId]?.provider?.getClockPickerConfig(clockId)
+	    ?: ClockPickerConfig(
+            "", "", "",
+            BitmapDrawable(null, Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
+        )
+
 
     fun createExampleClock(clockId: ClockId): ClockController? = createClock(clockId)
 

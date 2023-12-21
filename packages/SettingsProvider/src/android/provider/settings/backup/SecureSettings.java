@@ -286,7 +286,8 @@ public class SecureSettings {
         Settings.Secure.TETHERING_ALLOW_VPN_UPSTREAMS,
         Settings.Secure.MANDATORY_BIOMETRICS,
         Settings.Secure.MANDATORY_BIOMETRICS_REQUIREMENTS_SATISFIED,
-        // Evolution X additions
+        // Sakura Additions
         Settings.Secure.QUICK_SETTINGS_TILES_VIBRATE,
+        Settings.Secure.VPN_ENFORCE_DNS,
     };
 }
