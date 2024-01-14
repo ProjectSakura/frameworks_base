@@ -862,6 +862,7 @@ public class PhoneWindowManager implements WindowManagerPolicy {
     private LineageHardwareManager mLineageHardware;
 
     private boolean mLongSwipeDown;
+    private CameraAvailbilityListener mCameraAvailabilityListener;
 
     private CameraAvailbilityListener mCameraAvailabilityListener;
 
