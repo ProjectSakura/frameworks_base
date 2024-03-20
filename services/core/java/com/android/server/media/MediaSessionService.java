@@ -101,9 +101,12 @@ import java.io.FileDescriptor;
 import java.io.PrintWriter;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -1044,6 +1047,7 @@ public class MediaSessionService extends SystemService implements Monitor {
                 mOnMediaKeyEventSessionChangedListeners = new HashMap<>();
         private final SparseIntArray mUidToSessionCount = new SparseIntArray();
 
+        private final Deque<MediaButtonReceiverHolder> mReceiverHolderStack = new ArrayDeque<>();
         private MediaButtonReceiverHolder mLastMediaButtonReceiverHolder;
 
         private IOnVolumeKeyLongPressListener mOnVolumeKeyLongPressListener;
@@ -1051,6 +1055,8 @@ public class MediaSessionService extends SystemService implements Monitor {
 
         private IOnMediaKeyListener mOnMediaKeyListener;
         private int mOnMediaKeyListenerUid;
+
+        private static final int MAX_STACK_SIZE = 10;
 
         FullUserRecord(int fullUserId) {
             mFullUserId = fullUserId;
@@ -1175,12 +1181,43 @@ public class MediaSessionService extends SystemService implements Monitor {
                 return;
             }
             MediaSessionRecord sessionRecord = (MediaSessionRecord) record;
-            mLastMediaButtonReceiverHolder = sessionRecord.getMediaButtonReceiver();
+            String recordPackage = record.getPackageName();
+            MediaButtonReceiverHolder receiverHolder = sessionRecord.getMediaButtonReceiver();
+
+            removeHolderWithPackageName(recordPackage);
+            if (receiverHolder == null) {
+                if (mReceiverHolderStack.size() == 0) {
+                    mLastMediaButtonReceiverHolder = null;
+                } else {
+                    mLastMediaButtonReceiverHolder = mReceiverHolderStack.peek();
+                }
+            } else {
+                if (mReceiverHolderStack.size() == MAX_STACK_SIZE) {
+                    mReceiverHolderStack.removeLast();
+                }
+                mReceiverHolderStack.push(receiverHolder);
+                mLastMediaButtonReceiverHolder = receiverHolder;
+            }
+
             String mediaButtonReceiverInfo = (mLastMediaButtonReceiverHolder == null)
                     ? "" : mLastMediaButtonReceiverHolder.flattenToString();
             Settings.Secure.putString(mContentResolver,
                     MEDIA_BUTTON_RECEIVER,
                     mediaButtonReceiverInfo);
+        }
+
+        private void removeHolderWithPackageName(String packageName) {
+            if (packageName == null) {
+                return;
+            }
+
+            Iterator<MediaButtonReceiverHolder> iterator = mReceiverHolderStack.iterator();
+            while (iterator.hasNext()) {
+                if (packageName.equals(iterator.next().getPackageName())) {
+                    iterator.remove();
+                    break;
+                }
+            }
         }
 
         private void pushAddressedPlayerChangedLocked(
