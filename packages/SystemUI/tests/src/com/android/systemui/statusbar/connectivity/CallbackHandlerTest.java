@@ -29,7 +29,7 @@ import androidx.test.runner.AndroidJUnit4;
 import com.android.settingslib.mobile.TelephonyIcons;
 import com.android.systemui.SysuiTestCase;
 import com.android.systemui.statusbar.connectivity.NetworkController.EmergencyListener;
-import com.android.systemui.tests.R;
+import com.android.systemui.res.R;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -85,7 +85,7 @@ public class CallbackHandlerTest extends SysuiTestCase {
         String description = "Test";
         String secondaryLabel = "Secondary label";
         WifiIndicators indicators = new WifiIndicators(
-                enabled, status, qs, in, out, description, true, secondaryLabel, true);
+                enabled, status, qs, in, out, description, true, secondaryLabel);
         mHandler.setWifiIndicators(indicators);
         waitForCallbacks();
 
@@ -120,7 +120,7 @@ public class CallbackHandlerTest extends SysuiTestCase {
         boolean roaming = true;
         MobileDataIndicators indicators = new MobileDataIndicators(
                 status, qs, type, qsType, in, out, typeDescription,
-                typeDescriptionHtml, description, subId, roaming, true, true);
+                typeDescriptionHtml, description, subId, roaming, true);
         mHandler.setMobileDataIndicators(indicators);
         waitForCallbacks();
 
@@ -179,7 +179,7 @@ public class CallbackHandlerTest extends SysuiTestCase {
     @Test
     public void testSignalCallback_setIsAirplaneMode() {
         IconState state =
-                new IconState(true, R.drawable.stat_sys_airplane_mode, "Test Description");
+                new IconState(true, com.android.settingslib.R.drawable.stat_sys_airplane_mode, "Test Description");
         mHandler.setIsAirplaneMode(state);
         waitForCallbacks();
 
