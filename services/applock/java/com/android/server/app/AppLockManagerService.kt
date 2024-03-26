@@ -50,6 +50,7 @@ import android.util.Slog
 
 import com.android.internal.R
 import com.android.internal.annotations.GuardedBy
+import com.android.internal.util.sakura.Utils
 import com.android.server.LocalServices
 import com.android.server.SystemService
 import com.android.server.app.AppLockManagerServiceInternal
@@ -119,11 +120,11 @@ class AppLockManagerService(
     }
 
     private val keyguardManager: KeyguardManager by lazy {
-        context.getSystemService(KeyguardManager::class.java)
+        context.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
     }
 
     private val alarmManager: AlarmManager by lazy {
-        context.getSystemService(AlarmManager::class.java)
+        context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
     }
 
     private val userManagerInternal: UserManagerInternal by lazy {
@@ -204,7 +205,6 @@ class AppLockManagerService(
                             unlockedPackages.remove(packageName)
                         }
                     }
-                }
                 logD {
                         "Package $packageName uninstalled, cleaning up"
                     }
