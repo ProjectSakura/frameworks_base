@@ -252,8 +252,6 @@ public class TriStateUiControllerImpl implements TriStateUiController,
             VolumeDialogController volumeDialogController,
             ConfigurationController configurationController,
             TunerService tunerService) {
-        mContext =
-                new ContextThemeWrapper(context, R.style.qs_theme);
         mVolumeDialogController = volumeDialogController;
         mConfigurationController = configurationController;
         mTunerService = tunerService;
@@ -328,7 +326,6 @@ public class TriStateUiControllerImpl implements TriStateUiController,
             mDialog.dismiss();
             mDialog = null;
         }
-        mDialog = new Dialog(mContext, R.style.qs_theme);
         mShowing = false;
         mWindow = mDialog.getWindow();
         mWindow.requestFeature(Window.FEATURE_NO_TITLE);
