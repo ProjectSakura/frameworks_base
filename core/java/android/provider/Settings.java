@@ -6298,16 +6298,6 @@ public final class Settings {
         public static final String THREE_FINGER_GESTURE = "three_finger_gesture";
 
         /**
-         * Gesture navbar length mode.
-         * Supported modes: 0 for short length, 1 for normal and 2 for long.
-         * @hide
-         */
-        public static final String GESTURE_NAVBAR_LENGTH_MODE = "gesture_navbar_length_mode";
-
-        /** @hide */
-        public static final String BACK_GESTURE_HEIGHT = "back_gesture_height";
-
-        /**
          * @hide
          */
         public static final String SCREENSHOT_SHUTTER_SOUND = "screenshot_shutter_sound";
@@ -12223,18 +12213,6 @@ public final class Settings {
          * @hide
          */
         public static final String ENABLE_PROJECTION_PRIVACY_INDICATOR = "enable_projection_privacy_indicator";
-
-        /**
-         * Select from different navigation bar layouts
-         * @hide
-         */
-        public static final String NAVBAR_LAYOUT_VIEWS = "navbar_layout_views";
-
-        /**
-         * Inverse navigation bar layout
-         * @hide
-         */
-        public static final String NAVBAR_INVERSE_LAYOUT = "navbar_inverse_layout";
 
         /**
          * Whether to show or hide the arrow for back gesture
