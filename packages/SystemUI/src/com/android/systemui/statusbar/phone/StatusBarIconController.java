@@ -464,7 +464,7 @@ public interface StatusBarIconController {
                     return addBindableIcon((BindableIconHolder) holder, index);
 
                 case TYPE_BLUETOOTH:
-                    return addBluetoothIcon(index, slot, holder.getBluetoothState());
+                    return addBluetoothIcon(index, slot, blocked, holder.getBluetoothState());
 
                 case TYPE_IMS:
                     return addImsIcon(index, slot, holder.getImsState());
@@ -529,8 +529,8 @@ public interface StatusBarIconController {
         }
 
         protected StatusBarBluetoothView addBluetoothIcon(
-                int index, String slot, BluetoothIconState state) {
-            StatusBarBluetoothView view = onCreateStatusBarBluetoothView(slot);
+                int index, String slot, boolean blocked, BluetoothIconState state) {
+            StatusBarBluetoothView view = onCreateStatusBarBluetoothView(slot, blocked);
             view.applyBluetoothState(state);
             mGroup.addView(view, index, onCreateLayoutParams());
             return view;
@@ -563,8 +563,10 @@ public interface StatusBarIconController {
                         );
         }
 
-        private StatusBarBluetoothView onCreateStatusBarBluetoothView(String slot) {
-            StatusBarBluetoothView view = StatusBarBluetoothView.fromContext(mContext, slot);
+        private StatusBarBluetoothView onCreateStatusBarBluetoothView(
+                String slot, boolean blocked) {
+            StatusBarBluetoothView view =
+                    StatusBarBluetoothView.fromContext(mContext, slot, blocked);
             return view;
         }
 
