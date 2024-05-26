@@ -347,19 +347,25 @@ public class KeyguardClockSwitchController extends ViewController<KeyguardClockS
 
         updateWeatherView();
 
-        if (mSmartspaceController.isEnabled()) {
-            View ksv = mView.findViewById(R.id.keyguard_slice_view);
-            int viewIndex = mStatusArea.indexOfChild(ksv);
-            ksv.setVisibility(View.GONE);
+        mUiExecutor.execute(() -> {
+            if (mSmartspaceController.isEnabled()) {
+                removeViewsFromStatusArea();
 
-            removeViewsFromStatusArea();
-            addSmartspaceView();
-            // TODO(b/261757708): add content observer for the Settings toggle and add/remove
-            //  weather according to the Settings.
-            if (mSmartspaceController.isDateWeatherDecoupled()) {
-                addDateWeatherView();
+                View ksv = mView.findViewById(R.id.keyguard_slice_view);
+                int viewIndex = mStatusArea.indexOfChild(ksv);
+                ksv.setVisibility(mShowWeather ? View.VISIBLE : View.GONE);
+
+                if (!mShowWeather) {
+                    addSmartspaceView();
+                    if (mSmartspaceController.isDateWeatherDecoupled() && !migrateClocksToBlueprint()) {
+                        addDateWeatherView();
+                        setDateWeatherVisibility();
+                        setWeatherVisibility();
+                    }
+                }
             }
-        }
+        });
+
         if (!migrateClocksToBlueprint()) {
             setDateWeatherVisibility();
             setWeatherVisibility();
