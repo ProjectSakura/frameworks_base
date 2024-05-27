@@ -18,6 +18,7 @@
 package com.android.internal.util.sakura;
 
 import android.app.Application;
+import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.os.Build;
 import android.os.SystemProperties;
@@ -30,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 public class PixelPropsUtils {
@@ -58,14 +60,24 @@ public class PixelPropsUtils {
     private static final Map<String, Object> propsToChangeBS4;
     private static final Map<String, ArrayList<String>> propsToKeep;
 
-    private static final String spoof_brand = Resources.getSystem().getString(R.string.spoof_brand);
-    private static final String spoof_manufacturer = Resources.getSystem().getString(R.string.spoof_manufacturer);
-    private static final String spoof_device = Resources.getSystem().getString(R.string.spoof_device);
-    private static final String spoof_id = Resources.getSystem().getString(R.string.spoof_id);
-    private static final String spoof_fp = Resources.getSystem().getString(R.string.spoof_fp);
-    private static final String spoof_model = Resources.getSystem().getString(R.string.spoof_model);
-    private static final String spoof_product = Resources.getSystem().getString(R.string.spoof_product);
-    private static final String spoof_spl = Resources.getSystem().getString(R.string.spoof_spl);
+    private static final Resources mResources;
+    static {
+        // make sure we only use the english strings
+        Resources res = Resources.getSystem();
+        Configuration conf = res.getConfiguration();
+        conf.setLocale(Locale.ENGLISH);
+        res.updateConfiguration(conf, null);
+        mResources = res;
+    }
+
+    private static final String spoof_brand = mResources.getString(R.string.spoof_brand);
+    private static final String spoof_manufacturer = mResources.getString(R.string.spoof_manufacturer);
+    private static final String spoof_device = mResources.getString(R.string.spoof_device);
+    private static final String spoof_id = mResources.getString(R.string.spoof_id);
+    private static final String spoof_fp = mResources.getString(R.string.spoof_fp);
+    private static final String spoof_model = mResources.getString(R.string.spoof_model);
+    private static final String spoof_product = mResources.getString(R.string.spoof_product);
+    private static final String spoof_spl = mResources.getString(R.string.spoof_spl);
 
     // Packages to Spoof as Pixel 8 Pro
     private static final String[] packagesToChangePixel8Pro = {
