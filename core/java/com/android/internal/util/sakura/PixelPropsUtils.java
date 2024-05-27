@@ -18,9 +18,12 @@
 package com.android.internal.util.sakura;
 
 import android.app.Application;
+import android.content.res.Resources;
 import android.os.Build;
 import android.os.SystemProperties;
 import android.util.Log;
+
+import com.android.internal.R;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -54,6 +57,15 @@ public class PixelPropsUtils {
     private static final Map<String, Object> propsToChangeF5;
     private static final Map<String, Object> propsToChangeBS4;
     private static final Map<String, ArrayList<String>> propsToKeep;
+
+    private static final String spoof_brand = Resources.getSystem().getString(R.string.spoof_brand);
+    private static final String spoof_manufacturer = Resources.getSystem().getString(R.string.spoof_manufacturer);
+    private static final String spoof_device = Resources.getSystem().getString(R.string.spoof_device);
+    private static final String spoof_id = Resources.getSystem().getString(R.string.spoof_id);
+    private static final String spoof_fp = Resources.getSystem().getString(R.string.spoof_fp);
+    private static final String spoof_model = Resources.getSystem().getString(R.string.spoof_model);
+    private static final String spoof_product = Resources.getSystem().getString(R.string.spoof_product);
+    private static final String spoof_spl = Resources.getSystem().getString(R.string.spoof_spl);
 
     // Packages to Spoof as Pixel 8 Pro
     private static final String[] packagesToChangePixel8Pro = {
@@ -406,14 +418,14 @@ public class PixelPropsUtils {
 
     private static void spoofBuildGms() {
         // Alter build parameters to avoid hardware attestation enforcement
-        setPropValue("BRAND", "motorola");
-        setPropValue("MANUFACTURER", "motorola");
-        setPropValue("DEVICE", "griffin");
-        setPropValue("ID", "MCC24.246-37");
-        setPropValue("FINGERPRINT", "motorola/griffin_retcn/griffin:6.0.1/MCC24.246-37/42:user/release-keys");
-        setPropValue("MODEL", "XT1650-05");
-        setPropValue("PRODUCT", "griffin_retcn");
-        setVersionFieldString("SECURITY_PATCH", "2016-07-01");
+        setPropValue("BRAND", spoof_brand);
+        setPropValue("MANUFACTURER", spoof_manufacturer);
+        setPropValue("DEVICE", spoof_device);
+        setPropValue("ID", spoof_id);
+        setPropValue("FINGERPRINT", spoof_fp);
+        setPropValue("MODEL", spoof_model);
+        setPropValue("PRODUCT", spoof_product);
+        setVersionFieldString("SECURITY_PATCH", spoof_spl);
     }
 
     private static boolean isCallerSafetyNet() {

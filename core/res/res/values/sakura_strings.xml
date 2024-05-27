@@ -20,4 +20,14 @@
     <string name="aerr_copy">Copy crash log URL</string>
     <string name="url_copy_success">URL copied successfully</string>
     <string name="url_copy_failed">An error occured while uploading the log to Pasty</string>
+
+    <!-- Strings for PixelPropUtils DO NOT TRANSLATE! -->
+    <string name="spoof_brand" translatable="false"></string>
+    <string name="spoof_manufacturer" translatable="false"></string>
+    <string name="spoof_device" translatable="false"></string>
+    <string name="spoof_id" translatable="false"></string>
+    <string name="spoof_fp" translatable="false"></string>
+    <string name="spoof_model" translatable="false"></string>
+    <string name="spoof_product" translatable="false"></string>
+    <string name="spoof_spl" translatable="false"></string>
 </resources>
