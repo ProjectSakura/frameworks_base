@@ -59,4 +59,14 @@
 
     <!-- Whether to force enable multi resolution configuration for camera -->
     <java-symbol type="bool" name="config_forceMultiResolution" />
+
+    <!-- PixelPropUtils -->
+    <java-symbol type="string" name="spoof_brand" />
+    <java-symbol type="string" name="spoof_manufacturer" />
+    <java-symbol type="string" name="spoof_device" />
+    <java-symbol type="string" name="spoof_id" />
+    <java-symbol type="string" name="spoof_fp" />
+    <java-symbol type="string" name="spoof_model" />
+    <java-symbol type="string" name="spoof_product" />
+    <java-symbol type="string" name="spoof_spl" />
 </resources>
