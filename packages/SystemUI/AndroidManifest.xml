@@ -584,7 +584,7 @@
                  android:foregroundServiceType="systemExempted"/>
 
         <!-- started from PhoneWindowManager -->
-        <service android:name=".crdroid.onthego.OnTheGoService"
+        <service android:name=".sakura.onthego.OnTheGoService"
             android:process=":onthego"
             android:exported="true" />
 
