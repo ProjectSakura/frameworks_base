@@ -78,7 +78,7 @@ public class QSCustomizer extends LinearLayout {
         mToolbar = findViewById(com.android.internal.R.id.action_bar);
         TypedValue value = new TypedValue();
         themedContext.getTheme().resolveAttribute(android.R.attr.homeAsUpIndicator, value, true);
-        toolbar.setNavigationIcon(
+        mToolbar.setNavigationIcon(
                 getResources().getDrawable(value.resourceId, themedContext.getTheme()));
 
         mToolbar.getMenu().add(Menu.NONE, MENU_RESET, 0, com.android.internal.R.string.reset)

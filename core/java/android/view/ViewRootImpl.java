@@ -12618,6 +12618,8 @@ public final class ViewRootImpl implements ViewParent,
             mHandler.sendEmptyMessageDelayed(MSG_CHECK_INVALIDATION_IDLE,
                     FRAME_RATE_IDLENESS_CHECK_TIME_MILLIS);
             mHasIdledMessage = true;
+        }
+    }
 
     private boolean isSwipeToScreenshotGestureActive() {
         try {

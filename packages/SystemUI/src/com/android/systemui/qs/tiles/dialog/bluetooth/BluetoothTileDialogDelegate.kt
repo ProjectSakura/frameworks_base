@@ -148,7 +148,7 @@ internal constructor(
     override fun onStart(dialog: SystemUIDialog) {
         lastUiUpdateMs = systemClock.elapsedRealtime()
         if (isAutoOn && !bluetoothToggleInitialValue) {
-            toggleView.isChecked = true
+            getToggleView(dialog).isChecked = true
             mutableBluetoothStateToggle.value = true
         }
     }

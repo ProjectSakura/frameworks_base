@@ -155,6 +155,9 @@ public class TriStateUiControllerImpl implements TriStateUiController,
         public void onCaptionEnabledStateChanged(Boolean isEnabled, Boolean checkBeforeSwitch) {}
 
         @Override
+        public void onVolumeChangedFromKey() {}
+
+        @Override
         public void onConfigurationChanged() {
             updateTriStateLayout();
         }
@@ -579,7 +582,7 @@ public class TriStateUiControllerImpl implements TriStateUiController,
                     }
                     if (mDialogView != null && bg != 0) {
                         mDialogView.setBackgroundDrawable(res.getDrawable(bg));
-                        mBackgroundColor = getAttrColor(android.R.attr.colorPrimary);
+                        mBackgroundColor = getAttrColor(com.android.internal.R.attr.colorSurface);
                         mDialogView.setBackgroundTintList(ColorStateList.valueOf(mBackgroundColor));
                     }
                     mDialogPosition = positionY2;

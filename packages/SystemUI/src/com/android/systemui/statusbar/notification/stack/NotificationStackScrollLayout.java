@@ -115,12 +115,9 @@ import com.android.systemui.statusbar.notification.row.ActivatableNotificationVi
 import com.android.systemui.statusbar.notification.row.ExpandableNotificationRow;
 import com.android.systemui.statusbar.notification.row.ExpandableView;
 import com.android.systemui.statusbar.notification.row.StackScrollerDecorView;
-<<<<<<< HEAD
 import com.android.systemui.statusbar.notification.shared.NotificationsImprovedHunAnimation;
 import com.android.systemui.statusbar.notification.shared.NotificationsLiveDataStoreRefactor;
-=======
 import com.android.systemui.statusbar.phone.CentralSurfaces;
->>>>>>> 4b9d10626950 (SystemUI: OOS style notification clear all button [1/2])
 import com.android.systemui.statusbar.phone.HeadsUpAppearanceController;
 import com.android.systemui.statusbar.phone.HeadsUpTouchHelper;
 import com.android.systemui.statusbar.phone.ScreenOffAnimationController;
@@ -342,12 +339,8 @@ public class NotificationStackScrollLayout extends ViewGroup implements Dumpable
         }
     };
     private NotificationStackScrollLogger mLogger;
-<<<<<<< HEAD
     private Runnable mResetUserExpandedStatesRunnable;
-=======
     private CentralSurfaces mCentralSurfaces;
-    private NotificationsController mNotificationsController;
->>>>>>> 4b9d10626950 (SystemUI: OOS style notification clear all button [1/2])
     private ActivityStarter mActivityStarter;
     private final int[] mTempInt2 = new int[2];
     private final HashSet<Runnable> mAnimationFinishedRunnables = new HashSet<>();
@@ -4900,15 +4893,8 @@ public class NotificationStackScrollLayout extends ViewGroup implements Dumpable
         boolean animate = mIsExpanded && mAnimationsEnabled;
         mFooterView.setVisible(visible, animate);
         mFooterView.showHistory(showHistory);
-<<<<<<< HEAD
-        mFooterView.setClearAllButtonVisible(showDismissView, animate);
+        mFooterView.setClearAllButtonVisible(!mShowDimissButton && showDismissView, animate);
         mFooterView.setFooterLabelVisible(mHasFilteredOutSeenNotifications);
-=======
-        if (!FooterViewRefactor.isEnabled()) {
-            mFooterView.setClearAllButtonVisible(!mShowDimissButton && showDismissView, animate);
-            mFooterView.setFooterLabelVisible(mHasFilteredOutSeenNotifications);
-        }
->>>>>>> 4b9d10626950 (SystemUI: OOS style notification clear all button [1/2])
     }
 
     @VisibleForTesting

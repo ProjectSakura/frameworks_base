@@ -67,11 +67,7 @@ public class StatusBarSignalPolicy implements SignalCallback,
     private boolean mHideMobile;
     private boolean mHideEthernet;
     private boolean mActivityEnabled;
-<<<<<<< HEAD
-=======
-    private boolean mHideVpn;
     private boolean mHideIms;
->>>>>>> 97d30715e0e0 (SystemUI: Introduce dynamic VoLTE & VoWiFi icons)
 
     // Track as little state as possible, and only for padding purposes
     private boolean mIsAirplaneMode = false;
@@ -164,11 +160,7 @@ public class StatusBarSignalPolicy implements SignalCallback,
         boolean hideAirplane = hideList.contains(mSlotAirplane);
         boolean hideMobile = hideList.contains(mSlotMobile);
         boolean hideEthernet = hideList.contains(mSlotEthernet);
-<<<<<<< HEAD
-=======
-        boolean hideVpn = hideList.contains(mSlotVpn);
         boolean hideIms = hideList.contains(mSlotIms);
->>>>>>> 97d30715e0e0 (SystemUI: Introduce dynamic VoLTE & VoWiFi icons)
 
         if (hideAirplane != mHideAirplane || hideMobile != mHideMobile
                 || hideEthernet != mHideEthernet || hideIms != mHideIms) {

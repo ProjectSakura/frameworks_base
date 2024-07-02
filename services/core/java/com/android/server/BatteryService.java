@@ -958,6 +958,7 @@ public final class BatteryService extends SystemService {
                 : mChargingPolicyChangeListeners) {
             listener.onChargingPolicyChanged(newPolicy);
         }
+    }
 
     private boolean isOemCharger() {
         String path = mContext.getResources().getString(

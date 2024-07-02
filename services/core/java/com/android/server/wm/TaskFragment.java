@@ -106,11 +106,8 @@ import android.window.TaskFragmentOrganizerToken;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.protolog.common.ProtoLog;
-<<<<<<< HEAD
 import com.android.internal.util.ToBooleanFunction;
-=======
 import com.android.server.LocalServices;
->>>>>>> 5234f0ba1d4a (services: Implement exit app animation boost)
 import com.android.server.am.HostingRecord;
 import com.android.server.pm.pkg.AndroidPackage;
 import com.android.window.flags.Flags;
