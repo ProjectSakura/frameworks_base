@@ -170,10 +170,6 @@ public class StatusBarSignalPolicy implements SignalCallback,
         boolean hideIms = hideList.contains(mSlotIms);
 >>>>>>> 97d30715e0e0 (SystemUI: Introduce dynamic VoLTE & VoWiFi icons)
 
-        if (hideVpn != mHideVpn) {
-            mHideVpn = hideVpn;
-            mHandler.post(this::updateVpn);
-        }
         if (hideAirplane != mHideAirplane || hideMobile != mHideMobile
                 || hideEthernet != mHideEthernet || hideIms != mHideIms) {
             mHideAirplane = hideAirplane;
