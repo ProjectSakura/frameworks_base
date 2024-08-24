@@ -194,8 +194,6 @@ public class PixelPropsUtils {
     };
 
     private static volatile boolean sIsGms = false;
-    private static volatile boolean sIsFinsky = false;
-    private static volatile boolean sIsExcluded = false;
 
     static {
         propsToKeep = new HashMap<>();
@@ -275,7 +273,6 @@ public class PixelPropsUtils {
 
             if (Arrays.asList(packagesToKeep).contains(packageName) ||
                     packageName.startsWith("com.google.android.GoogleCamera")) {
-                sIsExcluded = true;
                 return;
             }
 
@@ -291,10 +288,6 @@ public class PixelPropsUtils {
                         !SystemProperties.getBoolean(SPOOF_PIXEL_NETFLIX, false)) {
                     if (DEBUG) Log.d(TAG, "Netflix spoofing disabled by system prop");
                     return;
-            } else if (packageName.equals("com.android.vending") &&
-                    SystemProperties.getBoolean(SPOOF_PIXEL_GMS, true)) {
-                sIsFinsky = true;
-                return;
             } else if (Arrays.asList(packagesToChangePixel8Pro).contains(packageName)) {
                 propsToChange.putAll(propsToChangePixel8Pro);
             } else {
@@ -438,18 +431,5 @@ public class PixelPropsUtils {
         setPropValue("MODEL", spoof_model);
         setPropValue("PRODUCT", spoof_product);
         setVersionFieldString("SECURITY_PATCH", spoof_spl);
-    }
-
-    private static boolean isCallerSafetyNet() {
-        return sIsGms && Arrays.stream(Thread.currentThread().getStackTrace())
-                .anyMatch(elem -> elem.getClassName().contains("DroidGuard"));
-    }
-
-    public static void onEngineGetCertificateChain() {
-        // Check stack for SafetyNet or Play Integrity
-        if ((isCallerSafetyNet() || sIsFinsky) && !sIsExcluded) {
-            Log.i(TAG, "Blocked key attestation sIsGms=" + sIsGms + " sIsFinsky=" + sIsFinsky);
-            throw new UnsupportedOperationException();
-        }
     }
 }
