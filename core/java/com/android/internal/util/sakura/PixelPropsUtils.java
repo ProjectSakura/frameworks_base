@@ -395,7 +395,7 @@ public final class PixelPropsUtils {
     }
 
     private static void spoofBuildGms(Context context) {
-        if (!SystemProperties.getBoolean(SPOOF_PIXEL_PI, true))
+        if (!_getSpoofPixelPiPropertyValue())
             return;
         
         File dataFile = new File(Environment.getDataSystemDirectory(), DATA_FILE);
@@ -457,12 +457,17 @@ public final class PixelPropsUtils {
     }
 
     public static void onEngineGetCertificateChain() {
-        if (!SystemProperties.getBoolean(SPOOF_PIXEL_PI, true))
+        if (!_getSpoofPixelPiPropertyValue())
             return;
         // Check stack for SafetyNet or Play Integrity
         if (isCallerSafetyNet() || sIsFinsky) {
             Log.i(TAG, "Blocked key attestation");
             throw new UnsupportedOperationException();
         }
+    }
+
+    private static boolean _getSpoofPixelPiPropertyValue() {
+        return true;
+        // return SystemProperties.getBoolean(SPOOF_PIXEL_PI, true);
     }
 }

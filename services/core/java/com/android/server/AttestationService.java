@@ -159,7 +159,7 @@ public final class AttestationService extends SystemService {
     private class FetchGmsCertifiedProps implements Runnable {
         @Override
         public void run() {
-            if (!SystemProperties.getBoolean(SPOOF_PIXEL_PI, true)) {
+            if (!_getSpoofPixelPiPropertyValue()) {
                 mPendingUpdate = false;
                 return;
             }
@@ -187,6 +187,11 @@ public final class AttestationService extends SystemService {
             } catch (Exception e) {
                 Log.e(TAG, "Error in FetchGmsCertifiedProps", e);
             }
+        }
+
+        private boolean _getSpoofPixelPiPropertyValue() {
+            return true;
+            // return SystemProperties.getBoolean(SPOOF_PIXEL_PI, true);
         }
     }
 }
