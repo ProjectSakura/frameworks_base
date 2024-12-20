@@ -478,6 +478,7 @@ class AppLockManagerService(
                 userId
             )
             if (!aInfo.isSystemApp()) return
+            if (Utils.launchablePackages(context).contains(pkg)) return
             if (!whiteListedSystemApps.contains(pkg))
                 throw IllegalArgumentException("System package $pkg is not whitelisted")
         } catch(e: PackageManager.NameNotFoundException) {
