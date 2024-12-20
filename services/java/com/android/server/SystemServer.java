@@ -109,6 +109,7 @@ import com.android.internal.widget.ILockSettings;
 import com.android.internal.widget.LockSettingsInternal;
 import com.android.server.adaptiveauth.AdaptiveAuthService;
 import com.android.server.am.ActivityManagerService;
+import com.android.server.app.AppLockManagerService;
 import com.android.server.appbinding.AppBindingService;
 import com.android.server.appop.AppOpMigrationHelper;
 import com.android.server.appop.AppOpMigrationHelperImpl;
@@ -474,9 +475,6 @@ public final class SystemServer implements Dumpable {
             "/apex/com.android.profiling/javalib/service-profiling.jar";
 
     private static final String TETHERING_CONNECTOR_CLASS = "android.net.ITetheringConnector";
-
-    private static final String APP_LOCK_SERVICE_CLASS =
-            "com.android.server.app.AppLockManagerService$Lifecycle";
 
     private static final String PERSISTENT_DATA_BLOCK_PROP = "ro.frp.pst";
 
@@ -2609,7 +2607,7 @@ public final class SystemServer implements Dumpable {
             }
 
             t.traceBegin("AppLockManagerService");
-            mSystemServiceManager.startService(APP_LOCK_SERVICE_CLASS);
+            mSystemServiceManager.startService(AppLockManagerService.Lifecycle.class);
             t.traceEnd();
 
             if (!isWatch) {
