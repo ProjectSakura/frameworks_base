@@ -37738,6 +37738,7 @@ package android.provider {
     field public static final String TEXT_AUTO_PUNCTUATE = "auto_punctuate";
     field public static final String TEXT_AUTO_REPLACE = "auto_replace";
     field public static final String TEXT_SHOW_PASSWORD = "show_password";
+    field @FlaggedApi("settings_three_finger_gesture") public static final String THREE_FINGER_GESTURE = "three_finger_gesture";
     field public static final String TIME_12_24 = "time_12_24";
     field @Deprecated public static final String TRANSITION_ANIMATION_SCALE = "transition_animation_scale";
     field @Deprecated public static final String USB_MASS_STORAGE_ENABLED = "usb_mass_storage_enabled";
