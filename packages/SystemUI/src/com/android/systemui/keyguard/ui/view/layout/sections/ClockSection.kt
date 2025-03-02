@@ -184,13 +184,10 @@ constructor(
             )
             val largeClockTopMargin =
                 if (com.android.systemui.shared.Flags.clockReactiveSmartspaceLayout()) {
-                    keyguardClockViewModel.getLargeClockTopMargin() +
-                        getDimen(ENHANCED_SMARTSPACE_HEIGHT)
-                } else if (smartspaceViewModel.isSmartspaceEnabled) {
+                    keyguardClockViewModel.getLargeClockTopMargin()
+                } else {
                     keyguardClockViewModel.getLargeClockTopMargin() +
                         getDimen(DATE_WEATHER_VIEW_HEIGHT)
-                } else {
-                    keyguardClockViewModel.getLargeClockTopMargin()
                 }
             connect(
                 customR.id.lockscreen_clock_view_large,
@@ -267,7 +264,6 @@ constructor(
 
     companion object {
         private const val DATE_WEATHER_VIEW_HEIGHT = "date_weather_view_height"
-        private const val ENHANCED_SMARTSPACE_HEIGHT = "enhanced_smartspace_height"
 
         fun getDimen(context: Context, name: String): Int {
             val res = context.packageManager.getResourcesForApplication(context.packageName)
