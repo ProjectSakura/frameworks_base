@@ -2858,15 +2858,15 @@ public class PhoneWindowManager implements WindowManagerPolicy {
             mKeyCombinationManager.addRule(
                     new TwoKeysCombinationRule(KEYCODE_VOLUME_DOWN, KEYCODE_VOLUME_UP) {
                         @Override
-                        boolean preCondition() {
+                        public boolean preCondition() {
                             return mVolUpAndDownMute;
                         }
                         @Override
-                        void execute() {
+                        public void execute() {
                             triggerVirtualKeypress(KeyEvent.KEYCODE_VOLUME_MUTE);
                         }
                         @Override
-                        void cancel() {
+                        public void cancel() {
                         }
                     });
         } else {
