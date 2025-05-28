@@ -13591,6 +13591,13 @@ public final class Settings {
          */
         public static final String HBM_SETTING_KEY =
                 "com.android.server.display.HBM_SETTING_KEY";
+        
+        /**
+         * User selectable keybox data.
+         * @hide
+         */
+        @Readable
+        public static final String KEYBOX_DATA = "keybox_data";
 
         /**
          * Whether to show privacy indicator for location
