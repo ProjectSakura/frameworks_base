@@ -177,5 +177,9 @@
 
     <!-- Text while recognizing face -->
     <string name="face_unlock_recognizing">Recognizing face...</string>
->>>>>>> 6b79d0f2d779 (SystemUI: Implement face unlock recognition animation and text)
+
+    <!-- Flashlight Strength -->
+    <string name="flashlight_strength_title">Flashlight Strength</string>
+    <string name="flashlight_strength_turn_off">Turn off</string>
+    <string name="flashlight_strength_turn_on">Turn on</string>
 </resources>
