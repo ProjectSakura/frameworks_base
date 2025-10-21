@@ -13858,6 +13858,41 @@ public final class Settings {
         @Readable
         public static final String KEYBOX_DATA = "keybox_data";
 
+        /** Whether to use PIF spoof for google apps
+         * @hide
+         */
+        
+        @Readable
+        public static final String PI_ENABLE_SPOOF = "pi_enable_spoof";
+
+        /**
+         * Whether to disable GMS cert chain with custom keybox
+         * @hide
+         */
+        @Readable
+        public static final String PI_GMS_CERT_CHAIN = "pi_gms_cert_chain";
+
+        /**
+         * Whether to use PIF spoof for games
+         * @hide
+         */
+        @Readable
+        public static final String PI_GAMES_SPOOF = "pi_games_spoof";
+
+        /**
+         * Whether to use PIF spoof for photos
+         * @hide
+         */
+        @Readable
+        public static final String PI_PHOTOS_SPOOF = "pi_photos_spoof";
+
+        /**
+         * Whether to use PIF spoof for netflix
+         * @hide
+         */
+        @Readable
+        public static final String PI_NETFLIX_SPOOF = "pi_netflix_spoof";
+
         /**
          * Whether to show privacy indicator for location
          * @hide
