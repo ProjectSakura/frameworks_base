@@ -7446,6 +7446,6 @@ message MetricsEvent {
     // END OF AOSP CONSTANTS
 
     // Sakura Settings
-    SAKURA_SETTINGS = 4000;
+    SAKURA_SETTINGS = 2999;
   }
 }

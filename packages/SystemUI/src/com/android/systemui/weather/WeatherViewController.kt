@@ -22,7 +22,7 @@ import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
 
-import com.android.internal.util.crdroid.OmniJawsClient
+import com.android.internal.util.sakura.OmniJawsClient
 
 import com.android.systemui.Dependency
 import com.android.systemui.plugins.statusbar.StatusBarStateController
