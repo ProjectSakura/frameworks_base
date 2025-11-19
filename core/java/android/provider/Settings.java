@@ -126,7 +126,7 @@ import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 
-import com.android.internal.util.crdroid.DeviceConfigUtils;
+import com.android.internal.util.sakura.DeviceConfigUtils;
 
 /**
  * The Settings provider contains global system-level device preferences.
@@ -18571,6 +18571,30 @@ public final class Settings {
         @Readable
         public static final String PREFERRED_NETWORK_MODE =
                 "preferred_network_mode";
+
+        /**
+         * Force LTE Carrier Aggregation setting per SIM slot.
+         * Use FORCE_LTE_CA_0 for SIM slot 0 (first SIM)
+         * Use FORCE_LTE_CA_1 for SIM slot 1 (second SIM)
+         * 
+         * Type: int (0 = disabled, 1 = enabled)
+         * @hide
+         */
+        public static final String FORCE_LTE_CA = "force_lte_ca";
+
+        /**
+         * Force LTE Carrier Aggregation for SIM slot 0
+         * Type: int (0 = disabled, 1 = enabled)
+         * @hide
+         */
+        public static final String FORCE_LTE_CA_0 = "force_lte_ca_0";
+
+        /**
+         * Force LTE Carrier Aggregation for SIM slot 1
+         * Type: int (0 = disabled, 1 = enabled)
+         * @hide
+         */
+        public static final String FORCE_LTE_CA_1 = "force_lte_ca_1";
 
         /**
          * Name of an application package to be debugged.
