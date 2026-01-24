@@ -86,7 +86,7 @@ import androidx.annotation.DimenRes;
 
 import com.android.internal.config.sysui.SystemUiDeviceConfigFlags;
 import com.android.internal.policy.GestureNavigationSettingsObserver;
-import com.android.internal.util.crdroid.Utils;
+import com.android.internal.util.sakura.Utils;
 import com.android.systemui.LauncherProxyService;
 import com.android.systemui.contextualeducation.GestureType;
 import com.android.systemui.dagger.qualifiers.Background;
@@ -1028,13 +1028,25 @@ public class EdgeBackGestureHandler implements TunerService.Tunable {
     }
 
     private void updateBackArrowVisibility() {
-        if (mIsEnabled && mEdgeBackPlugin != null) {
+        if (!mIsEnabled) return;
+        if (DesktopExperienceFlags.ENABLE_MULTIDISPLAY_TRACKPAD_BACK_GESTURE.isTrue()) {
+            for (DisplayBackGestureHandler displayBackGestureHandler :
+                    mDisplayBackGestureHandlers.values()) {
+                displayBackGestureHandler.setBackArrowVisibility(mIsBackGestureArrowEnabled);
+            }
+        } else if (mEdgeBackPlugin != null) {
             mEdgeBackPlugin.setBackArrowVisibility(mIsBackGestureArrowEnabled);
         }
     }
 
     private void updateEdgeHaptic() {
-        if (mIsEnabled && mEdgeBackPlugin != null) {
+        if (!mIsEnabled) return;
+        if (DesktopExperienceFlags.ENABLE_MULTIDISPLAY_TRACKPAD_BACK_GESTURE.isTrue()) {
+            for (DisplayBackGestureHandler displayBackGestureHandler :
+                    mDisplayBackGestureHandlers.values()) {
+                displayBackGestureHandler.setEdgeHapticEnabled(mIsEdgeHapticEnabled);
+            }
+        } else if (mEdgeBackPlugin != null) {
             mEdgeBackPlugin.setEdgeHapticEnabled(mIsEdgeHapticEnabled);
         }
     }
