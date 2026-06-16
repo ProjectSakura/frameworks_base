@@ -37,7 +37,6 @@ import com.android.systemui.qs.tiles.ProfilesTile
 import com.android.systemui.qs.tiles.ReadingModeTile
 import com.android.systemui.qs.tiles.RefreshRateTile
 import com.android.systemui.qs.tiles.ScreenshotTile
-import com.android.systemui.qs.tiles.SmartPixelsTile
 import com.android.systemui.qs.tiles.SoundTile
 import com.android.systemui.qs.tiles.SyncTile
 import com.android.systemui.qs.tiles.UsbTetherTile
@@ -477,7 +476,7 @@ interface LineageModule {
 
         @Provides
         @IntoMap
-        @StringKey(SmartPixelsTile.TILE_SPEC)
+        @StringKey(SmartPixelTile.TILE_SPEC)
         fun provideSmartPixelsTileConfig(uiEventLogger: QsEventLogger): QSTileConfig =
             QSTileConfig(
                 tileSpec = TileSpec.create(SmartPixelTile.TILE_SPEC),
