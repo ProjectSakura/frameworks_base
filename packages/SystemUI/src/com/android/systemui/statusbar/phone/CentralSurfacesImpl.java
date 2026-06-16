@@ -16,6 +16,7 @@
 
 package com.android.systemui.statusbar.phone;
 
+import com.android.systemui.tuner.TunerService;
 import static android.app.StatusBarManager.DISABLE_HOME;
 import static android.app.StatusBarManager.WINDOW_STATE_HIDDEN;
 import static android.app.StatusBarManager.WINDOW_STATE_SHOWING;
@@ -615,6 +616,7 @@ public class CentralSurfacesImpl implements CoreStartable, CentralSurfaces,
 
     private boolean mNoAnimationOnNextBarModeChange;
     private final SysuiStatusBarStateController mStatusBarStateController;
+    private final TunerService mTunerService;
 
     private final ActivityTransitionAnimator mActivityTransitionAnimator;
     private final NotificationLaunchAnimatorControllerProvider mNotificationAnimationProvider;
@@ -665,6 +667,7 @@ public class CentralSurfacesImpl implements CoreStartable, CentralSurfaces,
     public CentralSurfacesImpl(
             Context context,
             NotificationsController notificationsController,
+            TunerService tunerService,
             FragmentService fragmentService,
             LightBarController lightBarController,
             AutoHideController autoHideController,
@@ -771,7 +774,6 @@ public class CentralSurfacesImpl implements CoreStartable, CentralSurfaces,
             QuickAccessWalletController walletController,
             WindowManager windowManager,
             WindowManagerProvider windowManagerProvider,
-            TunerService tunerService,
             MediaViewController mediaViewController,
             PulseViewController pulseViewController,
             EdgeLightViewController edgeLightViewController,
@@ -779,6 +781,7 @@ public class CentralSurfacesImpl implements CoreStartable, CentralSurfaces,
     ) {
         mContext = context;
         mNotificationsController = notificationsController;
+        mTunerService = tunerService;
         mFragmentService = fragmentService;
         mLightBarController = lightBarController;
         mAutoHideController = autoHideController;
