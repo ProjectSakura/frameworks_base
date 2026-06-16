@@ -1004,7 +1004,7 @@ public final class SystemServer implements Dumpable {
             }
 
             // Attach JVMTI agent if this is a debuggable build and the system property is set.
-            if (Build.IS_DEBUGGABLE) {
+            if (Build.IS_ENG) {
                 // Property is of the form "library_path=parameters".
                 String jvmtiAgent = SystemProperties.get("persist.sys.dalvik.jvmtiagent");
                 if (!jvmtiAgent.isEmpty()) {
@@ -2910,6 +2910,7 @@ public final class SystemServer implements Dumpable {
                 t.traceBegin("StartBackgroundInstallControlService");
                 mSystemServiceManager.startService(BackgroundInstallControlService.class);
                 t.traceEnd();
+            }
 
             if (context.getResources().getBoolean(R.bool.config_dozeAlwaysOnDisplayAvailable)) {
                 t.traceBegin("AutoAODService");
