@@ -7453,6 +7453,11 @@ public final class Settings {
          * @hide
          */
         public static final String SCREEN_OFF_ANIMATION = "screen_off_animation";
+        /**
+         * Whether to show the charging animation
+         * @hide
+         */
+        public static final String CHARGING_ANIMATION = "charging_animation";
 
         /**
          * Whether to show rotation suggestion
