@@ -17,11 +17,9 @@
 package com.android.internal.util.sakura;
 
 import android.content.Context;
-import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
-import android.content.pm.ResolveInfo;
 import android.os.PowerManager;
 import android.os.RemoteException;
 import android.os.ServiceManager;
@@ -30,29 +28,9 @@ import android.os.SystemProperties;
 
 import com.android.internal.statusbar.IStatusBarService;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class Utils {
-    /**
-     * Returns the list of package names that have at least one launchable
-     * (CATEGORY_LAUNCHER) activity, i.e. apps that show up in the launcher.
-     */
-    public static List<String> launchablePackages(Context context) {
-        PackageManager pm = context.getPackageManager();
-        Intent intent = new Intent(Intent.ACTION_MAIN, null);
-        intent.addCategory(Intent.CATEGORY_LAUNCHER);
-        List<ResolveInfo> resolveInfos = pm.queryIntentActivities(intent, 0);
-        List<String> packages = new ArrayList<>();
-        for (ResolveInfo info : resolveInfos) {
-            String pkg = info.activityInfo.packageName;
-            if (!packages.contains(pkg)) {
-                packages.add(pkg);
-            }
-        }
-        return packages;
-    }
-
 
     public static boolean isPackageInstalled(Context context, String packageName, boolean ignoreState) {
         if (packageName != null) {
