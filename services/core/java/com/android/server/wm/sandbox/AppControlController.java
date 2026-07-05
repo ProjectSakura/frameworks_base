@@ -26,6 +26,7 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.database.ContentObserver;
 import android.net.Uri;
+import android.os.Binder;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.UserHandle;
@@ -175,7 +176,12 @@ public class AppControlController {
                 saveGidRestrictions(config);
             }
 
-            Settings.Secure.putString(mContentResolver, SETTING_SANDBOX_CONFIG, config.toString());
+            final long token = Binder.clearCallingIdentity();
+            try {
+                Settings.Secure.putString(mContentResolver, SETTING_SANDBOX_CONFIG, config.toString());
+            } finally {
+                Binder.restoreCallingIdentity(token);
+            }
 
         } catch (JSONException e) {
             Slog.e(TAG, "Failed to save sandbox_config JSON", e);
