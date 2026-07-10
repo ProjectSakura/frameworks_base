@@ -16,6 +16,9 @@
 package com.android.server.webkit;
 
 import android.app.AppGlobals;
+
+import static com.android.server.pm.ComputerEngine.isDebuggable;
+
 import android.annotation.Nullable;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager.NameNotFoundException;
@@ -609,7 +612,7 @@ class WebViewUpdateServiceImpl2 {
             return VALIDITY_INCORRECT_SDK_VERSION;
         }
         if (!versionCodeGE(packageInfo.getLongVersionCode(), getMinimumVersionCode())
-                && !mSystemInterface.systemIsDebuggable()) {
+                && !isDebuggable()) {
             // Webview providers may be downgraded arbitrarily low, prevent that by enforcing
             // minimum version code. This check is only enforced for user builds.
             return VALIDITY_INCORRECT_VERSION_CODE;
