@@ -6130,7 +6130,7 @@ public class NotificationStackScrollLayout
             List<ExpandableNotificationRow> children = parent.getAttachedChildren();
             if (isVisibleOrIsVisibleInShelf(parent) && children != null) {
                 for (ExpandableNotificationRow child : children) {
-                    if (includeChildInClearAll(parent, selection)) {
+                    if (includeChildInClearAll(child, selection)) {
                         viewsToRemove.add(child);
                     }
                 }
@@ -6173,6 +6173,13 @@ public class NotificationStackScrollLayout
         };
         if (viewsToAnimateAway.isEmpty()) {
             dismissInBackend.accept(true);
+            if (closeShade && !rowsToDismissInBackend.isEmpty()) {
+                post(() -> {
+                    if (mIsExpanded) {
+                        mClearAllFinishedWhilePanelExpandedRunnable.run();
+                    }
+                });
+            }
             return;
         }
         // Disable normal animations
