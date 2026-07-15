@@ -748,8 +748,19 @@ class SystemIconsPopupController(
         )
 
         val strokeColor = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.3f)
+        val isLowBattery = percentage <= 15 && !isCharging
+        val lowBatteryPulse by infiniteTransition.animateFloat(
+            initialValue = 1f,
+            targetValue = 0.35f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(900, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "lowBatteryPulse"
+        )
         val fillColor by animateColorAsState(
-            targetValue = if (isCharging) BatteryChargingColor 
+            targetValue = if (isCharging) BatteryChargingColor
+                else if (isLowBattery) LowBatteryColor 
                 else MaterialTheme.colorScheme.tertiary,
             animationSpec = tween(400),
             label = "batteryFillColor"
@@ -766,7 +777,8 @@ class SystemIconsPopupController(
                 val radius = size.minDimension * 0.42f
 
                 drawCircle(
-                    color = strokeColor,
+                    color = if (isLowBattery) strokeColor.copy(alpha = strokeColor.alpha * lowBatteryPulse)
+                        else strokeColor,
                     radius = radius,
                     style = Stroke(width = 2.dp.toPx())
                 )
@@ -804,7 +816,8 @@ class SystemIconsPopupController(
                 clipPath(circlePath) {
                     drawPath(
                         path = wavePath,
-                        color = fillColor
+                        color = if (isLowBattery) fillColor.copy(alpha = fillColor.alpha * lowBatteryPulse)
+                            else fillColor
                     )
                 }
             }
@@ -813,6 +826,7 @@ class SystemIconsPopupController(
 
     private companion object {
         private val BatteryChargingColor = Color(0xFF2ECC71)
+        private val LowBatteryColor = Color(0xFFE74C3C)
     }
 
     private fun readActiveSubscriptions(subscriptionManager: SubscriptionManager?) =
