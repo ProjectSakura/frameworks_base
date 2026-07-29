@@ -207,6 +207,8 @@ public class DisplayRotation {
     @AllowAllRotations
     private int mAllowAllRotations = ALLOW_ALL_ROTATIONS_UNDEFINED;
 
+    private Boolean mEnableLockScreenRotation;
+
     private int mUserRotationAngles = -1;
 
     @WindowManagerPolicy.UserRotationMode
@@ -551,11 +553,13 @@ public class DisplayRotation {
         int rotation = rotationForOrientation(lastOrientation, oldRotation);
 
         // Preserve locked user rotation across screen off/on and keyguard
-        if (mUserRotationMode == WindowManagerPolicy.USER_ROTATION_LOCKED) {
-            final WindowContainer<?> source = mDisplayContent.getLastOrientationSource();
+        if (getEnableLockScreenRotation()
+                && mUserRotationMode == WindowManagerPolicy.USER_ROTATION_LOCKED) {
+            final WindowContainer source = mDisplayContent.getLastOrientationSource();
             final boolean isAppRequest = source != null &&
                     (source.asActivityRecord() != null ||
-                    (source.asWindowState() != null && source.asWindowState().mActivityRecord != null));
+                            (source.asWindowState() != null &&
+                                    source.asWindowState().isActivityWindow()));
 
             // If an app explicitly requests a fixed orientation (e.g., a landscape game),
             // allow it to override the user lock. Otherwise, preserve the user's locked rotation.
@@ -1327,6 +1331,18 @@ public class DisplayRotation {
         }
 
         return mAllowAllRotations;
+    }
+
+
+    private boolean getEnableLockScreenRotation() {
+        if (mEnableLockScreenRotation == null) {
+            // Can't read this during init() because the context doesn't have display metrics at
+            // that time so we cannot determine tablet vs. phone then.
+            mEnableLockScreenRotation = mContext.getResources().getBoolean(
+                    R.bool.config_enableLockScreenRotation);
+        }
+
+        return mEnableLockScreenRotation;
     }
 
     boolean isLandscapeOrSeascape(@Surface.Rotation final int rotation) {
