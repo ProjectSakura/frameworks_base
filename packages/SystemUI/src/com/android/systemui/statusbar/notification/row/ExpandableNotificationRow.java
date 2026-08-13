@@ -309,6 +309,7 @@ public class ExpandableNotificationRow extends ActivatableNotificationView
     private boolean mChildrenExpanded;
     private boolean mIsSummaryWithChildren;
     private NotificationChildrenContainer mChildrenContainer;
+    @Nullable private View mAxBlurAlphaSource;
     private NotificationMenuRowPlugin mMenuRow;
     private ViewStub mGutsStub;
     private boolean mIsSystemChildExpanded;
@@ -1827,7 +1828,19 @@ public class ExpandableNotificationRow extends ActivatableNotificationView
 
     @Override
     protected boolean shouldUseAxBlurBackground() {
-        return super.shouldUseAxBlurBackground() && !isColorizedNotification();
+        if (!super.shouldUseAxBlurBackground()) {
+            return false;
+        }
+        if (isColorizedNotification()) {
+            return false;
+        }
+        if (isMediaRow()) {
+            return false;
+        }
+        if (containsCustomNotification()) {
+            return false;
+        }
+        return true;
     }
 
     @Override
@@ -1847,6 +1860,18 @@ public class ExpandableNotificationRow extends ActivatableNotificationView
         return entry != null
                 && entry.getSbn() != null
                 && entry.getSbn().getNotification().isColorized();
+    }
+
+    private boolean containsCustomNotification() {
+        if (NotificationBundleUi.isEnabled()) {
+            return mEntryAdapter != null
+                    && mEntryAdapter.getSbn() != null
+                    && mEntryAdapter.getSbn().getNotification().isCustomNotification();
+        }
+        NotificationEntry entry = getEntryLegacy();
+        return entry != null
+                && entry.getSbn() != null
+                && entry.getSbn().getNotification().isCustomNotification();
     }
 
     public void closeRemoteInput() {
@@ -2621,6 +2646,9 @@ public class ExpandableNotificationRow extends ActivatableNotificationView
             mChildrenContainer = (NotificationChildrenContainer) inflated;
             mChildrenContainer.setIsMinimized(mIsMinimized);
             mChildrenContainer.setContainingNotification(ExpandableNotificationRow.this);
+            if (mAxBlurAlphaSource != null) {
+                mChildrenContainer.setAxBlurAlphaSource(mAxBlurAlphaSource);
+            }
             mChildrenContainer.onNotificationUpdated();
             mChildrenContainer.setLogger(mChildrenContainerLogger);
 
@@ -3368,9 +3396,49 @@ public class ExpandableNotificationRow extends ActivatableNotificationView
         updateIfNeeded();
     }
 
+    @Override
+    public void setAxBlurTransitionVisible(boolean visible) {
+        if (isAxBlurTransitionVisible() == visible) {
+            return;
+        }
+        super.setAxBlurTransitionVisible(visible);
+        updateBundleHeaderBlurEnabled();
+        if (mChildrenContainer != null) {
+            List<ExpandableNotificationRow> children = mChildrenContainer.getAttachedChildren();
+            for (int i = 0; i < children.size(); i++) {
+                children.get(i).setAxBlurTransitionVisible(visible);
+            }
+        }
+    }
+
     private void updateBundleHeaderBlurEnabled() {
         if (isBundle() && mChildrenContainer != null) {
             mChildrenContainer.setBundleHeaderBlurEnabled(shouldUseBundleHeaderBlurBackground());
+        }
+    }
+
+    @Override
+    public void setAxBlurAlphaSource(View source) {
+        super.setAxBlurAlphaSource(source);
+        mAxBlurAlphaSource = source;
+        if (mChildrenContainer != null) {
+            mChildrenContainer.setAxBlurAlphaSource(source);
+            List<ExpandableNotificationRow> children = mChildrenContainer.getAttachedChildren();
+            for (int i = 0; i < children.size(); i++) {
+                children.get(i).setAxBlurAlphaSource(source);
+            }
+        }
+    }
+
+    @Override
+    public void setBlurFadeRange(float fadeTop, float fadeBottom) {
+        super.setBlurFadeRange(fadeTop, fadeBottom);
+        if (mChildrenContainer != null) {
+            mChildrenContainer.setBlurFadeRange(fadeTop, fadeBottom);
+            List<ExpandableNotificationRow> children = mChildrenContainer.getAttachedChildren();
+            for (int i = 0; i < children.size(); i++) {
+                children.get(i).setBlurFadeRange(fadeTop, fadeBottom);
+            }
         }
     }
 
@@ -3396,7 +3464,9 @@ public class ExpandableNotificationRow extends ActivatableNotificationView
     }
 
     public boolean shouldUseBundleHeaderBlurBackground() {
-        return mOnKeyguard && !mIsDozing && !isColorizedNotification();
+        return (mOnKeyguard || isAxBlurTransitionVisible())
+                && !mIsDozing
+                && !isColorizedNotification();
     }
 
     @Override
@@ -4654,8 +4724,14 @@ public class ExpandableNotificationRow extends ActivatableNotificationView
     }
 
     public boolean isMediaRow() {
-        NotificationBundleUi.assertInLegacyMode();
-        return getEntryLegacy().getSbn().getNotification().isMediaNotification();
+        if (NotificationBundleUi.isEnabled()) {
+            return mEntryAdapter != null
+                    && mEntryAdapter.getSbn() != null
+                    && mEntryAdapter.getSbn().getNotification().isMediaNotification();
+        }
+        return getEntryLegacy() != null
+                && getEntryLegacy().getSbn() != null
+                && getEntryLegacy().getSbn().getNotification().isMediaNotification();
     }
 
     public void setAboveShelf(boolean aboveShelf) {
@@ -4846,6 +4922,7 @@ public class ExpandableNotificationRow extends ActivatableNotificationView
                 pw.println(mChildrenContainer.debugString());
                 pw.println("Children Container Intrinsic Height: "
                         + mChildrenContainer.getIntrinsicHeight());
+                DumpUtilsKt.withIncreasedIndent(pw, () -> mChildrenContainer.dump(pw, args));
                 pw.println();
                 dumpChildren(pw, args);
                 dumpTransientViews(transientViewCount, pw, args);
