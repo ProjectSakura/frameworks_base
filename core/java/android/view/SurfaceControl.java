@@ -3427,6 +3427,8 @@ public final class SurfaceControl implements Parcelable {
          */
         @NonNull
         public Transaction setPosition(@NonNull SurfaceControl sc, float x, float y) {
+            //Drop the frame if the surface is dead
+            if (sc == null || !sc.isValid()) return this;
             checkPreconditions(sc);
             if (SurfaceControlRegistry.sCallStackDebuggingEnabled) {
                 SurfaceControlRegistry.getProcessInstance().checkCallStackDebugging(
@@ -3680,6 +3682,8 @@ public final class SurfaceControl implements Parcelable {
         @UnsupportedAppUsage
         public Transaction setMatrix(SurfaceControl sc,
                 float dsdx, float dtdx, float dtdy, float dsdy) {
+            //Drop the frame if surface is dead
+            if (sc == null || !sc.isValid()) return this;
             checkPreconditions(sc);
             if (SurfaceControlRegistry.sCallStackDebuggingEnabled) {
                 SurfaceControlRegistry.getProcessInstance().checkCallStackDebugging(
