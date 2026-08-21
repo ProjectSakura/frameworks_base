@@ -119,7 +119,9 @@ constructor(
     private var keyguardAnimator: Animator? = null
     private var notificationAnimator: Animator? = null
     private var updateScheduled: Boolean = false
-    private var lastAppliedBlurTuple: Triple<Int, Boolean, Float>? = null
+    private var lastAppliedBlurRadius: Int = -1
+    private var lastAppliedOpaque: Boolean = false
+    private var lastAppliedBlurScale: Float = -1f
     private var lastAppliedBlurVri: ViewRootImpl? = null
     @VisibleForTesting var shadeExpansion = 0f
     private var isClosed: Boolean = true
@@ -380,11 +382,12 @@ constructor(
             val (blur, zoomOutFromShadeRadius) = computeBlurAndZoomOut()
             val opaque = shouldBlurBeOpaque
             val blurScale = zoomOutAsScale(zoomOutFromShadeRadius)
-            val cur = Triple(blur, opaque, blurScale)
             val vri = root.viewRootImpl
             TrackTracer.instantForGroup("shade", "shade_blur_radius", blur)
-            if (cur != lastAppliedBlurTuple || vri !== lastAppliedBlurVri) {
-                lastAppliedBlurTuple = cur
+            if (blur != lastAppliedBlurRadius || opaque != lastAppliedOpaque || blurScale != lastAppliedBlurScale || vri !== lastAppliedBlurVri) {
+                lastAppliedBlurRadius = blur
+                lastAppliedOpaque = opaque
+                lastAppliedBlurScale = blurScale
                 lastAppliedBlurVri = vri
                 blurUtils.applyBlur(vri, blur, opaque, blurScale)
             }
