@@ -347,7 +347,7 @@ class SystemIconsPopupController(
                                     .weight(1f)
                                     .fillMaxHeight()
                             ) {
-                                NetworkSection()
+                                NetworkSection(onDismiss = onDismiss)
                             }
                         }
                     }
@@ -870,9 +870,10 @@ class SystemIconsPopupController(
         }
 
     @Composable
-    private fun NetworkSection() {
+    private fun NetworkSection(onDismiss: () -> Unit) {
         val subscriptionManager = context.getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE) as? SubscriptionManager
         val telephonyManager = context.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
+        val haptic = LocalHapticFeedback.current
 
         val activeSubscriptions by produceState(initialValue = readActiveSubscriptions(subscriptionManager)) {
             val listener = object : SubscriptionManager.OnSubscriptionsChangedListener() {
@@ -919,6 +920,13 @@ class SystemIconsPopupController(
                     val subTelephonyManager = remember(subId) {
                         telephonyManager?.createForSubscriptionId(subId)
                     }
+                    var isMobileDataEnabled by remember(subId) { mutableStateOf(
+                        try {
+                            subTelephonyManager?.isDataEnabled ?: false
+                        } catch (e: Exception) {
+                            false
+                        }
+                    ) }
                     var signalStrength by remember(subId) { mutableStateOf(
                         try {
                             subTelephonyManager?.signalStrength?.level ?: 4
@@ -961,7 +969,34 @@ class SystemIconsPopupController(
                         label = subscription.carrierName?.toString() ?: "SIM ${subscription.simSlotIndex + 1}",
                         sublabel = networkType,
                         strength = signalStrength,
-                        icon = Icons.Default.SignalCellularAlt
+                        icon = Icons.Default.SignalCellularAlt,
+                        isDataEnabled = isMobileDataEnabled,
+                        onToggleData = {
+                            isMobileDataEnabled = !isMobileDataEnabled
+                            try {
+                                subTelephonyManager?.setDataEnabledForReason(
+                                    TelephonyManager.DATA_ENABLED_REASON_USER,
+                                    isMobileDataEnabled
+                                )
+                            } catch (e: Exception) {
+                                try {
+                                    @Suppress("DEPRECATION")
+                                    subTelephonyManager?.setDataEnabled(isMobileDataEnabled)
+                                } catch (e2: Exception) {
+                                }
+                            }
+                        },
+                        onLongPressData = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            try {
+                                val intent = Intent(Settings.ACTION_NETWORK_OPERATOR_SETTINGS)
+                                intent.putExtra(Settings.EXTRA_SUB_ID, subId)
+                                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                context.startActivity(intent)
+                                onDismiss()
+                            } catch (e: Exception) {
+                            }
+                        }
                     )
                 }
             }
@@ -1083,13 +1118,36 @@ class SystemIconsPopupController(
         }
     }
 
+    @OptIn(ExperimentalFoundationApi::class)
     @Composable
     private fun NetworkCard(
         label: String,
         sublabel: String,
         strength: Int,
-        icon: androidx.compose.ui.graphics.vector.ImageVector
+        icon: androidx.compose.ui.graphics.vector.ImageVector,
+        isDataEnabled: Boolean? = null,
+        onToggleData: (() -> Unit)? = null,
+        onLongPressData: (() -> Unit)? = null
     ) {
+        val iconContainerColor by animateColorAsState(
+            targetValue = if (isDataEnabled == false) {
+                MaterialTheme.colorScheme.surfaceVariant
+            } else {
+                MaterialTheme.colorScheme.primaryContainer
+            },
+            animationSpec = tween(250),
+            label = "dataIconContainer"
+        )
+        val iconTintColor by animateColorAsState(
+            targetValue = if (isDataEnabled == false) {
+                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+            } else {
+                MaterialTheme.colorScheme.onPrimaryContainer
+            },
+            animationSpec = tween(250),
+            label = "dataIconTint"
+        )
+
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
@@ -1111,9 +1169,20 @@ class SystemIconsPopupController(
                     modifier = Modifier.weight(1f)
                 ) {
                     Surface(
-                        modifier = Modifier.size(32.dp),
+                        modifier = Modifier
+                            .size(32.dp)
+                            .then(
+                                if (onToggleData != null) {
+                                    Modifier.combinedClickable(
+                                        onClick = onToggleData,
+                                        onLongClick = onLongPressData ?: {}
+                                    )
+                                } else {
+                                    Modifier
+                                }
+                            ),
                         shape = CircleShape,
-                        color = MaterialTheme.colorScheme.primaryContainer
+                        color = iconContainerColor
                     ) {
                         Box(
                             contentAlignment = Alignment.Center,
@@ -1122,7 +1191,7 @@ class SystemIconsPopupController(
                             Icon(
                                 imageVector = icon,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                tint = iconTintColor,
                                 modifier = Modifier.size(16.dp)
                             )
                         }
