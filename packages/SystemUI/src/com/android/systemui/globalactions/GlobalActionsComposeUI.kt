@@ -415,6 +415,14 @@ fun GlobalActionsScreen(
         }
     }
 
+    val performSystemUiRestart = {
+        try {
+            android.os.SystemProperties.set("ctl.restart", "systemui")
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
     val errorColor = MaterialTheme.colorScheme.error
 
     val handleTileClick: (TileConfig) -> Unit = { tile ->
@@ -463,7 +471,7 @@ fun GlobalActionsScreen(
         confirmationIcon = Icons.Rounded.Refresh
         confirmationColor = VividRed
         pendingConfirmationAction = {
-            if (sysUiAction != null) onActionClick(sysUiAction)
+            if (sysUiAction != null) onActionClick(sysUiAction) else performSystemUiRestart()
         }
         currentView = GlobalActionsView.CONFIRMATION
     }
