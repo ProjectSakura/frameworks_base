@@ -415,6 +415,10 @@ fun GlobalActionsScreen(
         }
     }
 
+    val performSystemUiRestart = {
+        android.os.Process.killProcess(android.os.Process.myPid())
+    }
+
     val errorColor = MaterialTheme.colorScheme.error
 
     val handleTileClick: (TileConfig) -> Unit = { tile ->
@@ -463,7 +467,7 @@ fun GlobalActionsScreen(
         confirmationIcon = Icons.Rounded.Refresh
         confirmationColor = VividRed
         pendingConfirmationAction = {
-            if (sysUiAction != null) onActionClick(sysUiAction)
+            if (sysUiAction != null) onActionClick(sysUiAction) else performSystemUiRestart()
         }
         currentView = GlobalActionsView.CONFIRMATION
     }
@@ -566,7 +570,7 @@ fun GlobalActionsScreen(
                     SliderPowerMenu(
                         onRestart = { restartAction?.let { onActionClick(it) } },
                         onShutdown = { shutdownAction?.let { onActionClick(it) } },
-                        onRestartSystemUi = { sysuiAction?.let { onActionClick(it) } },
+                        onRestartSystemUi = { sysuiAction?.let { onActionClick(it) } ?: performSystemUiRestart() },
                         onRestartRecovery = { recoveryAction?.let { onActionClick(it) } },
                         onEmergency = emergencyAction?.let { action ->
                             { onActionClick(action) }
