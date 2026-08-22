@@ -419,40 +419,45 @@ class SystemIconsPopupController(
         val offsetY = remember { Animatable(0f) }
         
         LaunchedEffect(Unit) {
-            launch {
+            val scaleJob = launch {
                 scale.animateTo(
                     0.7f,
                     animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessMedium
+                        dampingRatio = Spring.DampingRatioLowBouncy,
+                        stiffness = Spring.StiffnessLow
                     )
                 )
             }
-            launch {
+            val offsetYJob = launch {
                 offsetY.animateTo(
                     -50f,
                     animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessMedium
+                        dampingRatio = Spring.DampingRatioLowBouncy,
+                        stiffness = Spring.StiffnessMediumLow
                     )
                 )
             }
-            launch {
+            val offsetXJob = launch {
                 offsetX.animateTo(
                     200f, // Move back to right
                     animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessMedium
+                        dampingRatio = Spring.DampingRatioLowBouncy,
+                        stiffness = Spring.StiffnessMediumLow
                     )
                 )
             }
-            launch {
+            val alphaJob = launch {
                 alpha.animateTo(
                     0f,
-                    animationSpec = tween(150, easing = FastOutSlowInEasing)
+                    animationSpec = tween(280, easing = FastOutSlowInEasing)
                 )
-                onAnimationComplete()
             }
+
+            scaleJob.join()
+            offsetYJob.join()
+            offsetXJob.join()
+            alphaJob.join()
+            onAnimationComplete()
         }
 
         Box(
