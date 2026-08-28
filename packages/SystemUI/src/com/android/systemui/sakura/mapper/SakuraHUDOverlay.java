@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
+import android.graphics.Rect;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Environment;
 import android.os.Handler;
@@ -59,11 +60,17 @@ public class SakuraHUDOverlay implements SakuraTouchNodeView.OnNodeActionListene
         initToolbar();
     }
 
+    private Rect getRealDisplayBounds() {
+        return mWindowManager.getCurrentWindowMetrics().getBounds();
+    }
+
     private void initToolbar() {
         DisplayMetrics dm = mContext.getResources().getDisplayMetrics();
         float density = dm.density;
+        Rect bounds = getRealDisplayBounds();
+        int screenW = bounds.width();
 
-        int toolbarWidth = Math.min((int) (480 * density), (int) (dm.widthPixels * 0.92f));
+        int toolbarWidth = Math.min((int) (540 * density), (int) (screenW * 0.94f));
 
         mToolbar = new LinearLayout(mContext);
         mToolbar.setOrientation(LinearLayout.VERTICAL);
@@ -121,7 +128,18 @@ public class SakuraHUDOverlay implements SakuraTouchNodeView.OnNodeActionListene
         btnAddTap.setOnClickListener(v -> addNode(new SakuraKeyMapItem(KeyEvent.KEYCODE_SPACE, 0.5f, 0.5f)));
 
         Button btnAddWASD = createGridButton("+ WASD", "#20083B", "#7B2CBF", "#F8F5FC");
-        btnAddWASD.setOnClickListener(v -> addNode(SakuraKeyMapItem.createJoystick(0.25f, 0.65f, 0.08f)));
+        btnAddWASD.setOnClickListener(v -> {
+            addNode(new SakuraKeyMapItem(KeyEvent.KEYCODE_W, 0.20f, 0.58f));
+            addNode(new SakuraKeyMapItem(KeyEvent.KEYCODE_A, 0.13f, 0.68f));
+            addNode(new SakuraKeyMapItem(KeyEvent.KEYCODE_S, 0.20f, 0.78f));
+            addNode(new SakuraKeyMapItem(KeyEvent.KEYCODE_D, 0.27f, 0.68f));
+        });
+
+        Button btnAddGyro = createGridButton("+ GYRO", "#20083B", "#7B2CBF", "#F8F5FC");
+        btnAddGyro.setOnClickListener(v -> {
+            addNode(SakuraKeyMapItem.createGyroLeft(0.18f, 0.65f));
+            addNode(SakuraKeyMapItem.createGyroRight(0.82f, 0.65f));
+        });
 
         Button btnExport = createGridButton("EXPORT", "#20083B", "#7B2CBF", "#F8F5FC");
         btnExport.setOnClickListener(v -> exportProfile());
@@ -134,6 +152,7 @@ public class SakuraHUDOverlay implements SakuraTouchNodeView.OnNodeActionListene
 
         row2.addView(btnAddTap);
         row2.addView(btnAddWASD);
+        row2.addView(btnAddGyro);
         row2.addView(btnExport);
         row2.addView(btnImport);
         row2.addView(btnClear);
@@ -150,7 +169,7 @@ public class SakuraHUDOverlay implements SakuraTouchNodeView.OnNodeActionListene
                         | WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
                 PixelFormat.TRANSLUCENT);
         mToolbarParams.gravity = Gravity.TOP | Gravity.START;
-        mToolbarParams.x = Math.max(0, (dm.widthPixels - toolbarWidth) / 2);
+        mToolbarParams.x = Math.max(0, (screenW - toolbarWidth) / 2);
         mToolbarParams.y = (int) (24 * density);
     }
 
@@ -258,13 +277,16 @@ public class SakuraHUDOverlay implements SakuraTouchNodeView.OnNodeActionListene
             mCurrentPackage = (packageName != null && !packageName.isEmpty()) ? packageName : "com.android.systemui";
             mPackageTitle.setText(" • " + mCurrentPackage);
 
+            Rect bounds = getRealDisplayBounds();
+            int screenW = bounds.width();
+            DisplayMetrics dm = mContext.getResources().getDisplayMetrics();
+            float density = dm.density;
+
             if (!mIsShowing) {
                 try {
-                    DisplayMetrics dm = mContext.getResources().getDisplayMetrics();
-                    float density = dm.density;
-                    int toolbarWidth = Math.min((int) (480 * density), (int) (dm.widthPixels * 0.92f));
+                    int toolbarWidth = Math.min((int) (540 * density), (int) (screenW * 0.94f));
                     mToolbarParams.width = toolbarWidth;
-                    mToolbarParams.x = Math.max(0, (dm.widthPixels - toolbarWidth) / 2);
+                    mToolbarParams.x = Math.max(0, (screenW - toolbarWidth) / 2);
                     mToolbarParams.y = (int) (24 * density);
 
                     mWindowManager.addView(mToolbar, mToolbarParams);
@@ -309,14 +331,60 @@ public class SakuraHUDOverlay implements SakuraTouchNodeView.OnNodeActionListene
         });
     }
 
+    public void dismissAll() {
+        mMainHandler.post(() -> {
+            if (mIsShowing) {
+                try {
+                    mWindowManager.removeView(mToolbar);
+                    mIsShowing = false;
+                    if (mSaveListener != null) {
+                        mSaveListener.onOverlayVisibilityChanged(false);
+                    }
+                } catch (Exception ignored) {}
+            }
+            removeNodeViewsFromScreen();
+            mActiveNodes.clear();
+        });
+    }
+
+    public void loadInGameHUD(String packageName, String profileJson) {
+        mMainHandler.post(() -> {
+            mCurrentPackage = (packageName != null && !packageName.isEmpty()) ? packageName : "com.android.systemui";
+            mPackageTitle.setText(" • " + mCurrentPackage);
+
+            removeNodeViewsFromScreen();
+            mActiveNodes.clear();
+
+            if (profileJson != null && !profileJson.isEmpty()) {
+                loadProfileJson(profileJson);
+                for (SakuraTouchNodeView node : mActiveNodes) {
+                    node.setEditingMode(false);
+                }
+            }
+        });
+    }
+
     public boolean isShowing() {
         return mIsShowing;
+    }
+
+    private int getNodeSizePx(SakuraKeyMapItem item, float density) {
+        if (SakuraKeyMapItem.TYPE_JOYSTICK_WASD.equals(item.type)) {
+            return (int) (70 * density);
+        } else if (SakuraKeyMapItem.TYPE_GYRO_LEFT.equals(item.type) || SakuraKeyMapItem.TYPE_GYRO_RIGHT.equals(item.type) || SakuraKeyMapItem.TYPE_GYRO.equals(item.type)) {
+            return (int) (52 * density);
+        }
+        return (int) (44 * density);
     }
 
     private void addNode(SakuraKeyMapItem item) {
         DisplayMetrics dm = mContext.getResources().getDisplayMetrics();
         float density = dm.density;
-        int sizePx = SakuraKeyMapItem.TYPE_JOYSTICK_WASD.equals(item.type) ? (int) (70 * density) : (int) (44 * density);
+        Rect bounds = getRealDisplayBounds();
+        int screenW = bounds.width();
+        int screenH = bounds.height();
+
+        int sizePx = getNodeSizePx(item, density);
 
         WindowManager.LayoutParams nodeParams = new WindowManager.LayoutParams(
                 sizePx,
@@ -326,8 +394,8 @@ public class SakuraHUDOverlay implements SakuraTouchNodeView.OnNodeActionListene
                         | WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
                 PixelFormat.TRANSLUCENT);
         nodeParams.gravity = Gravity.TOP | Gravity.START;
-        nodeParams.x = (int) (item.normX * dm.widthPixels - sizePx / 2.0f);
-        nodeParams.y = (int) (item.normY * dm.heightPixels - sizePx / 2.0f);
+        nodeParams.x = (int) (item.normX * screenW - sizePx / 2.0f);
+        nodeParams.y = (int) (item.normY * screenH - sizePx / 2.0f);
 
         SakuraTouchNodeView node = new SakuraTouchNodeView(mContext, mWindowManager, nodeParams, item, this);
         mActiveNodes.add(node);
@@ -359,6 +427,10 @@ public class SakuraHUDOverlay implements SakuraTouchNodeView.OnNodeActionListene
     private String buildProfileJson() {
         DisplayMetrics dm = mContext.getResources().getDisplayMetrics();
         float density = dm.density;
+        Rect bounds = getRealDisplayBounds();
+        int screenW = bounds.width();
+        int screenH = bounds.height();
+
         JSONObject root = new JSONObject();
         try {
             root.put("package", mCurrentPackage);
@@ -368,13 +440,13 @@ public class SakuraHUDOverlay implements SakuraTouchNodeView.OnNodeActionListene
             for (SakuraTouchNodeView node : mActiveNodes) {
                 SakuraKeyMapItem item = node.getItem();
                 WindowManager.LayoutParams lp = node.getLayoutParamsRef();
-                int sizePx = SakuraKeyMapItem.TYPE_JOYSTICK_WASD.equals(item.type) ? (int) (70 * density) : (int) (44 * density);
+                int sizePx = getNodeSizePx(item, density);
 
                 float cx = lp.x + (sizePx / 2.0f);
                 float cy = lp.y + (sizePx / 2.0f);
 
-                item.normX = Math.max(0.0f, Math.min(1.0f, cx / (float) dm.widthPixels));
-                item.normY = Math.max(0.0f, Math.min(1.0f, cy / (float) dm.heightPixels));
+                item.normX = Math.max(0.0f, Math.min(1.0f, cx / (float) screenW));
+                item.normY = Math.max(0.0f, Math.min(1.0f, cy / (float) screenH));
 
                 array.put(item.toJsonObject());
             }
@@ -390,13 +462,17 @@ public class SakuraHUDOverlay implements SakuraTouchNodeView.OnNodeActionListene
             JSONObject root = new JSONObject(jsonStr);
             JSONArray array = root.optJSONArray("mappings");
             if (array != null) {
+                Rect bounds = getRealDisplayBounds();
+                int screenW = bounds.width();
+                int screenH = bounds.height();
+                DisplayMetrics dm = mContext.getResources().getDisplayMetrics();
+                float density = dm.density;
+
                 for (int i = 0; i < array.length(); i++) {
                     JSONObject obj = array.getJSONObject(i);
                     SakuraKeyMapItem item = SakuraKeyMapItem.fromJsonObject(obj);
-                    DisplayMetrics dm = mContext.getResources().getDisplayMetrics();
-                    float density = dm.density;
 
-                    int sizePx = SakuraKeyMapItem.TYPE_JOYSTICK_WASD.equals(item.type) ? (int) (70 * density) : (int) (44 * density);
+                    int sizePx = getNodeSizePx(item, density);
                     WindowManager.LayoutParams nodeParams = new WindowManager.LayoutParams(
                             sizePx,
                             sizePx,
@@ -405,8 +481,8 @@ public class SakuraHUDOverlay implements SakuraTouchNodeView.OnNodeActionListene
                                     | WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
                             PixelFormat.TRANSLUCENT);
                     nodeParams.gravity = Gravity.TOP | Gravity.START;
-                    nodeParams.x = (int) (item.normX * dm.widthPixels - sizePx / 2.0f);
-                    nodeParams.y = (int) (item.normY * dm.heightPixels - sizePx / 2.0f);
+                    nodeParams.x = (int) (item.normX * screenW - sizePx / 2.0f);
+                    nodeParams.y = (int) (item.normY * screenH - sizePx / 2.0f);
 
                     SakuraTouchNodeView node = new SakuraTouchNodeView(mContext, mWindowManager, nodeParams, item, this);
                     mActiveNodes.add(node);
@@ -488,6 +564,7 @@ public class SakuraHUDOverlay implements SakuraTouchNodeView.OnNodeActionListene
         } catch (Exception ignored) {}
         mActiveNodes.remove(node);
         saveAndApplySilently();
+        Toast.makeText(mContext, "Removed: " + node.getItem().keyName, Toast.LENGTH_SHORT).show();
     }
 
     @Override

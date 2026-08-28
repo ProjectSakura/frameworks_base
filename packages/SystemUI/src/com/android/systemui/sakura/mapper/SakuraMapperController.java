@@ -7,19 +7,21 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Rect;
 import android.hardware.input.IInputManager;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.ServiceManager;
-import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.WindowManager;
 
 public class SakuraMapperController implements SakuraHUDOverlay.OnSaveListener {
     private static final String TAG = "SakuraMapperController";
     public static final String ACTION_TOGGLE_MAPPER = "com.android.systemui.sakura.ACTION_TOGGLE_MAPPER";
 
     private final Context mContext;
+    private final WindowManager mWindowManager;
     private final Handler mHandler = new Handler(Looper.getMainLooper());
     private SakuraHUDOverlay mOverlay;
     private IInputManager mInputManager;
@@ -37,6 +39,7 @@ public class SakuraMapperController implements SakuraHUDOverlay.OnSaveListener {
 
     public SakuraMapperController(Context context) {
         this.mContext = context;
+        this.mWindowManager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
         init();
     }
 
@@ -109,12 +112,14 @@ public class SakuraMapperController implements SakuraHUDOverlay.OnSaveListener {
                 if (im != null) {
                     String profileJson = im.getSakuraProfile(mForegroundPackage);
                     if (profileJson != null && !profileJson.isEmpty()) {
-                        DisplayMetrics dm = mContext.getResources().getDisplayMetrics();
-                        im.setSakuraMapping(mForegroundPackage, profileJson, dm.widthPixels, dm.heightPixels);
+                        Rect bounds = mWindowManager.getCurrentWindowMetrics().getBounds();
+                        im.setSakuraMapping(mForegroundPackage, profileJson, bounds.width(), bounds.height());
                         im.setSakuraActive(true);
                         Log.i(TAG, "Auto-loaded Sakura keymap profile for " + mForegroundPackage);
+                        getOverlay().loadInGameHUD(mForegroundPackage, profileJson);
                     } else {
                         im.setSakuraActive(false);
+                        getOverlay().dismissAll();
                     }
                 }
             } catch (Exception e) {
@@ -153,8 +158,8 @@ public class SakuraMapperController implements SakuraHUDOverlay.OnSaveListener {
             IInputManager im = getInputManager();
             if (im != null) {
                 im.saveSakuraProfile(packageName, profileJson);
-                DisplayMetrics dm = mContext.getResources().getDisplayMetrics();
-                im.setSakuraMapping(packageName, profileJson, dm.widthPixels, dm.heightPixels);
+                Rect bounds = mWindowManager.getCurrentWindowMetrics().getBounds();
+                im.setSakuraMapping(packageName, profileJson, bounds.width(), bounds.height());
                 im.setSakuraActive(true);
             }
         } catch (Exception e) {
