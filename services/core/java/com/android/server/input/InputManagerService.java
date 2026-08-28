@@ -4220,6 +4220,51 @@ public class InputManagerService extends IInputManager.Stub
         return mNative.getPhysicalLocationPath(deviceId);
     }
 
+    @Override
+    public void setSakuraMapping(String packageName, String configJson, int displayWidth, int displayHeight) {
+        mNative.setSakuraMapping(packageName, configJson, displayWidth, displayHeight);
+    }
+
+    @Override
+    public void setSakuraActive(boolean active) {
+        mNative.setSakuraActive(active);
+    }
+
+    @Override
+    public void setSakuraOverlayShowing(boolean showing) {
+        mNative.setSakuraOverlayShowing(showing);
+    }
+
+    @Override
+    public void saveSakuraProfile(String packageName, String profileJson) {
+        if (packageName == null || packageName.isEmpty()) return;
+        try {
+            java.io.File dir = new java.io.File("/data/system/sakura_profiles");
+            if (!dir.exists()) {
+                dir.mkdirs();
+            }
+            java.io.File file = new java.io.File(dir, packageName + ".json");
+            try (java.io.FileWriter writer = new java.io.FileWriter(file)) {
+                writer.write(profileJson != null ? profileJson : "");
+            }
+        } catch (Exception e) {
+            android.util.Slog.e(TAG, "Failed to save Sakura profile for " + packageName, e);
+        }
+    }
+
+    @Override
+    public String getSakuraProfile(String packageName) {
+        if (packageName == null || packageName.isEmpty()) return null;
+        try {
+            java.io.File file = new java.io.File("/data/system/sakura_profiles", packageName + ".json");
+            if (!file.exists()) return null;
+            return new String(java.nio.file.Files.readAllBytes(file.toPath()), java.nio.charset.StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            android.util.Slog.e(TAG, "Failed to read Sakura profile for " + packageName, e);
+            return null;
+        }
+    }
+
     interface KeyboardBacklightControllerInterface {
         default void incrementKeyboardBacklight(int deviceId) {}
         default void decrementKeyboardBacklight(int deviceId) {}

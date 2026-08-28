@@ -2422,6 +2422,29 @@ static void nativeSetInputFilterEnabled(JNIEnv* env, jobject nativeImplObj, jboo
     im->getInputManager()->getDispatcher().setInputFilterEnabled(enabled);
 }
 
+static void nativeSetSakuraMapping(JNIEnv* env, jobject nativeImplObj, jstring packageNameObj,
+                                   jstring configJsonObj, jint displayWidth, jint displayHeight) {
+    NativeInputManager* im = getNativeInputManager(env, nativeImplObj);
+
+    std::string packageName = packageNameObj ? ScopedUtfChars(env, packageNameObj).c_str() : "";
+    std::string configJson = configJsonObj ? ScopedUtfChars(env, configJsonObj).c_str() : "";
+
+    im->getInputManager()->getDispatcher().setSakuraMapping(packageName, configJson,
+                                                            displayWidth, displayHeight);
+}
+
+static void nativeSetSakuraActive(JNIEnv* env, jobject nativeImplObj, jboolean active) {
+    NativeInputManager* im = getNativeInputManager(env, nativeImplObj);
+
+    im->getInputManager()->getDispatcher().setSakuraActive(active);
+}
+
+static void nativeSetSakuraOverlayShowing(JNIEnv* env, jobject nativeImplObj, jboolean showing) {
+    NativeInputManager* im = getNativeInputManager(env, nativeImplObj);
+
+    im->getInputManager()->getDispatcher().setSakuraOverlayShowing(showing);
+}
+
 static jboolean nativeSetInTouchMode(JNIEnv* env, jobject nativeImplObj, jboolean inTouchMode,
                                      jint pid, jint uid, jboolean hasPermission, jint displayId) {
     NativeInputManager* im = getNativeInputManager(env, nativeImplObj);
@@ -3509,6 +3532,10 @@ static const JNINativeMethod gInputManagerMethods[] = {
         {"setAccessibilityPointerMotionFilterEnabled", "(Z)V",
          (void*)nativeSetAccessibilityPointerMotionFilterEnabled},
         {"getPhysicalLocationPath", "(I)Ljava/lang/String;", (void*)nativeGetPhysicalLocationPath},
+        {"setSakuraMapping", "(Ljava/lang/String;Ljava/lang/String;II)V",
+         (void*)nativeSetSakuraMapping},
+        {"setSakuraActive", "(Z)V", (void*)nativeSetSakuraActive},
+        {"setSakuraOverlayShowing", "(Z)V", (void*)nativeSetSakuraOverlayShowing},
 };
 
 #define FIND_CLASS(var, className) \

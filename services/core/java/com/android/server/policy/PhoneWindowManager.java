@@ -599,6 +599,9 @@ public class PhoneWindowManager implements WindowManagerPolicy {
      */
     volatile boolean mIsGoingToSleep;
 
+    private long mLastLeftCtrlDownTime = 0;
+    private static final long DOUBLE_TAP_CTRL_TIMEOUT_MS = 280;
+
     // We are only tracking the current pending sleeping or waking group and not all the groups.
     // This is because these updates are coming from power thread via the notifier thread. As such,
     // we DON'T expect
@@ -5229,6 +5232,16 @@ public class PhoneWindowManager implements WindowManagerPolicy {
             return 0;
         }
 
+        if (down && keyCode == KeyEvent.KEYCODE_CTRL_LEFT) {
+            long now = SystemClock.uptimeMillis();
+            if (now - mLastLeftCtrlDownTime <= DOUBLE_TAP_CTRL_TIMEOUT_MS) {
+                mLastLeftCtrlDownTime = 0;
+                toggleSakuraOverlay();
+                return 0;
+            }
+            mLastLeftCtrlDownTime = now;
+        }
+
         final boolean interactive = (policyFlags & FLAG_INTERACTIVE) != 0;
 
         // Pre-basic policy based on interactive and pocket lock state.
@@ -8300,5 +8313,15 @@ public class PhoneWindowManager implements WindowManagerPolicy {
             } catch (RemoteException e) {
             }
         }
+    }
+
+    private void toggleSakuraOverlay() {
+        Slog.i(TAG, "Double tap Left Ctrl detected -> Toggling Sakura Mapper Overlay");
+        mHandler.post(() -> {
+            Intent intent = new Intent("com.android.systemui.sakura.ACTION_TOGGLE_MAPPER");
+            intent.setPackage("com.android.systemui");
+            intent.addFlags(Intent.FLAG_RECEIVER_FOREGROUND);
+            mContext.sendBroadcastAsUser(intent, UserHandle.CURRENT);
+        });
     }
 }

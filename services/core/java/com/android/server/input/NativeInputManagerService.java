@@ -67,6 +67,12 @@ interface NativeInputManagerService {
 
     void setInputFilterEnabled(boolean enable);
 
+    void setSakuraMapping(String packageName, String configJson, int displayWidth, int displayHeight);
+
+    void setSakuraActive(boolean active);
+
+    void setSakuraOverlayShowing(boolean showing);
+
     /**
      * Set the touch mode state for the display passed as argument.
      *
@@ -688,5 +694,15 @@ interface NativeInputManagerService {
 
         @Override
         public native String getPhysicalLocationPath(int deviceId);
+
+        @Override
+        public native void setSakuraMapping(String packageName, String configJson,
+                int displayWidth, int displayHeight);
+
+        @Override
+        public native void setSakuraActive(boolean active);
+
+        @Override
+        public native void setSakuraOverlayShowing(boolean showing);
     }
 }

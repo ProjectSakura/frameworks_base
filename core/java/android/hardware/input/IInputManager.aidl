@@ -319,4 +319,10 @@ interface IInputManager {
     PointF getCursorPositionInPhysicalDisplay(int displayId);
 
     PointF getCursorPositionInLogicalDisplay(int displayId);
+
+    void setSakuraMapping(String packageName, String configJson, int displayWidth, int displayHeight);
+    void setSakuraActive(boolean active);
+    void setSakuraOverlayShowing(boolean showing);
+    void saveSakuraProfile(String packageName, String profileJson);
+    String getSakuraProfile(String packageName);
 }
