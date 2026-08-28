@@ -26,7 +26,6 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
@@ -515,14 +514,12 @@ public class SakuraHUDOverlay implements SakuraTouchNodeView.OnNodeActionListene
             File dir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "SakuraKeymaps");
             if (!dir.exists()) dir.mkdirs();
             File exportFile = new File(dir, mCurrentPackage + ".sakura.json");
-            try (FileWriter writer = new FileWriter(exportFile)) {
-                writer.write(json);
-            }
+            Files.writeString(exportFile.toPath(), json);
 
-            Intent shareIntent = new Intent(Intent.ACTION_SEND);
-            shareIntent.setType("application/json");
-            shareIntent.putExtra(Intent.EXTRA_TEXT, json);
-            shareIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            Intent shareIntent = new Intent(Intent.ACTION_SEND)
+                    .setType("application/json")
+                    .putExtra(Intent.EXTRA_TEXT, json)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             mContext.startActivity(Intent.createChooser(shareIntent, "Share Keymap").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
 
             Toast.makeText(mContext, "Exported to Downloads/SakuraKeymaps/", Toast.LENGTH_SHORT).show();
@@ -537,7 +534,7 @@ public class SakuraHUDOverlay implements SakuraTouchNodeView.OnNodeActionListene
             File dir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "SakuraKeymaps");
             File importFile = new File(dir, mCurrentPackage + ".sakura.json");
             if (importFile.exists()) {
-                String content = new String(Files.readAllBytes(importFile.toPath()));
+                String content = Files.readString(importFile.toPath());
                 removeNodeViewsFromScreen();
                 mActiveNodes.clear();
                 loadProfileJson(content);
